@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 	"strings"
+	"time"
 
 	"strconv"
 
@@ -30,11 +30,6 @@ const (
 	SRC_DATE_FORMAT = "2006:01:02 15:04:05"
 
 	ES_BULK_LINE_HEADER = "{ \"index\":{} }"
-
-	DECIMAL_PATTERN = "[0-9]{1,}[\\.[0-9]{1,}]{0,1}"
-	LAT_PATTERN     = "(" + DECIMAL_PATTERN + ") deg (" + DECIMAL_PATTERN + ")' (" + DECIMAL_PATTERN + ")\" (N|S)"
-	LONG_PATTERN    = "(" + DECIMAL_PATTERN + ") deg (" + DECIMAL_PATTERN + ")' (" + DECIMAL_PATTERN + ")\" (E|W)"
-	GPS_PATTERN     = LAT_PATTERN + ", " + LONG_PATTERN
 )
 
 type Indexer struct {
@@ -147,12 +142,12 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 
 	rawDate, found := meta.Fields[CAPTUREDATE_KEY]
 	if found {
-		var err error
-		if pic.CaptureDate, err = time.Parse(SRC_DATE_FORMAT, rawDate.(string)); err != nil {
+		if d, err := time.Parse(SRC_DATE_FORMAT, rawDate.(string)); err != nil {
 			return pic, fmt.Errorf("error while parsing date (%v): %v", rawDate.(string), err)
+		} else {
+			pic.Date = strconv.FormatInt(d.Unix()*1000, 10)
 		}
 	}
-
 
 	if gpsVal, found := meta.Fields[GPS_KEY]; found {
 		lat, long, err := convertGPSCoordinates(gpsVal.(string))
@@ -198,14 +193,14 @@ func convertGPSCoordinates(latLong string) (float32, float32, error) {
 	sub := strings.Split(latLong, " ")
 	if len(sub) != 10 {
 		return 0, 0, fmt.Errorf("Parsing inconsistency (%v): %v elements parsed", latLong, len(sub))
-	} 
+	}
 	lat, err := degMinSecToDecimal(sub[0], skipLastChar(sub[2]), skipLastChar(sub[3]), skipLastChar(sub[4]))
 	if err != nil {
-		return 0,0,fmt.Errorf("error while converting latitude (%v): %v", latLong, err)
+		return 0, 0, fmt.Errorf("error while converting latitude (%v): %v", latLong, err)
 	}
 	long, err := degMinSecToDecimal(sub[5], skipLastChar(sub[7]), skipLastChar(sub[8]), sub[9])
 	if err != nil {
-		return 0,0,fmt.Errorf("error while converting longitude (%v): %v", latLong, err)
+		return 0, 0, fmt.Errorf("error while converting longitude (%v): %v", latLong, err)
 	}
 	return lat, long, nil
 }

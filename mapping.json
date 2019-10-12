@@ -1,5 +1,6 @@
+PUT /photos
 {
-    "mapping": {
+    "mappings": {
       "properties": {
         "Aperture": {
           "type": "long"
@@ -17,7 +18,7 @@
           "type": "long"
         },
         "GPS": {
-          "type": "geo-point"
+          "type": "geo_point"
         },
         "Height": {
           "type": "long"
@@ -60,6 +61,9 @@
         },
         "Width": {
           "type": "long"
+        },
+        "Date": {
+          "type": "date"
         }
       }
     }
