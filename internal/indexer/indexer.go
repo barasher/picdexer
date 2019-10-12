@@ -131,6 +131,13 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 	pic.Height = uint32(getFloat(meta, HEIGHT_KEY))
 	pic.Width = uint32(getFloat(meta, WIDTH_KEY))
 	pic.FileSize = uint32(fInfo.Size())
+	pic.FileName = fInfo.Name()
+	
+	components := strings.Split(f, string(os.PathSeparator))
+	logrus.Infof("%v", components)
+	if len(components) > 1 {
+		pic.Folder = components[len(components)-2]
+	}
 
 	rawKws, found := meta.Fields[KEYWORDS_KEY]
 	if found {

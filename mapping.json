@@ -64,7 +64,26 @@ PUT /photos
         },
         "Date": {
           "type": "date"
+        },
+        "FileName": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "Folder": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
         }
+
       }
     }
   }

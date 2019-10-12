@@ -12,4 +12,6 @@ type Model struct {
 	FileSize     uint32
 	Date         string
 	GPS          string
+	FileName     string
+	Folder       string
 }
