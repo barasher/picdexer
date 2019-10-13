@@ -24,7 +24,7 @@ const (
 	MIMETYPE_KEY    = "MIMEType"
 	HEIGHT_KEY      = "ImageHeight"
 	WIDTH_KEY       = "ImageWidth"
-	CAPTUREDATE_KEY = "DateTimeCreated"
+	CAPTUREDATE_KEY = "CreateDate"
 	GPS_KEY         = "GPSPosition"
 
 	SRC_DATE_FORMAT = "2006:01:02 15:04:05"
@@ -97,20 +97,31 @@ func (idxer *Indexer) Index() error {
 	return nil
 }
 
-func getFloat(m exif.FileMetadata, k string) float64 {
+func getFloat(m exif.FileMetadata, k string) *float64 {
 	v, found := m.Fields[k]
 	if !found {
-		return 0
+		return nil
 	}
-	return v.(float64)
+	v2 := v.(float64)
+	return &v2
 }
 
-func getString(m exif.FileMetadata, k string) string {
+func getString(m exif.FileMetadata, k string) *string {
 	v, found := m.Fields[k]
 	if !found {
-		return ""
+		return nil
 	}
-	return v.(string)
+	v2 := v.(string)
+	return &v2
+}
+
+func getUint64FromFloat64(m exif.FileMetadata, k string) *uint64 {
+	v, found := m.Fields[k]
+	if !found {
+		return nil
+	}
+	v2 := uint64(v.(float64))
+	return &v2
 }
 
 func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) {
@@ -123,28 +134,33 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 	}
 	meta := metas[0]
 
-	pic.Aperture = float32(getFloat(meta, APERTURE_KEY))
+	pic.Aperture = getFloat(meta, APERTURE_KEY)
 	pic.ShutterSpeed = getString(meta, SHUTTER_KEY)
 	pic.CameraModel = getString(meta, CAMERA_KEY)
 	pic.LensModel = getString(meta, LENS_KEY)
 	pic.MimeType = getString(meta, MIMETYPE_KEY)
-	pic.Height = uint32(getFloat(meta, HEIGHT_KEY))
-	pic.Width = uint32(getFloat(meta, WIDTH_KEY))
-	pic.FileSize = uint32(fInfo.Size())
+	pic.Height = getUint64FromFloat64(meta, HEIGHT_KEY)
+	pic.Width = getUint64FromFloat64(meta, WIDTH_KEY)
+	pic.FileSize = uint64(fInfo.Size())
 	pic.FileName = fInfo.Name()
-	
+
 	components := strings.Split(f, string(os.PathSeparator))
-	logrus.Infof("%v", components)
 	if len(components) > 1 {
 		pic.Folder = components[len(components)-2]
 	}
 
 	rawKws, found := meta.Fields[KEYWORDS_KEY]
 	if found {
-		pic.Keywords = make([]string, len(rawKws.([]interface{})))
-		for i, v := range rawKws.([]interface{}) {
-			pic.Keywords[i] = v.(string)
+		var kws []string
+		if interfaceSlices, is := rawKws.([]interface{}); is {
+			kws = make([]string, len(interfaceSlices))
+			for i, v := range interfaceSlices {
+				kws[i] = v.(string)
+			}
+		} else if str, is := rawKws.(string); is {
+			kws = append(kws, str)
 		}
+		pic.Keywords = kws
 	}
 
 	rawDate, found := meta.Fields[CAPTUREDATE_KEY]
@@ -152,7 +168,8 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 		if d, err := time.Parse(SRC_DATE_FORMAT, rawDate.(string)); err != nil {
 			return pic, fmt.Errorf("error while parsing date (%v): %v", rawDate.(string), err)
 		} else {
-			pic.Date = strconv.FormatInt(d.Unix()*1000, 10)
+			d2 := strconv.FormatInt(d.Unix()*1000, 10)
+			pic.Date = &d2
 		}
 	}
 
@@ -161,10 +178,10 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 		if err != nil {
 			return pic, fmt.Errorf("error while converting gps coordinates (%v): %v", gpsVal, err)
 		}
-		pic.GPS = fmt.Sprintf("%v,%v", lat, long)
+		gps := fmt.Sprintf("%v,%v", lat, long)
+		pic.GPS = &gps
 	}
 
-	logrus.Infof("%v", pic)
 	return pic, nil
 }
 
