@@ -30,6 +30,8 @@ const (
 	SRC_DATE_FORMAT = "2006:01:02 15:04:05"
 
 	ES_BULK_LINE_HEADER = "{ \"index\":{} }"
+
+	IMAGE_MIME_TYPE = "image/"
 )
 
 type Indexer struct {
@@ -81,11 +83,12 @@ func (idxer *Indexer) Index() error {
 			if err != nil {
 				logrus.Errorf("%v: %v", path, err)
 			} else {
-				fmt.Fprintln(os.Stdout, ES_BULK_LINE_HEADER)
-				if err := jsonEncoder.Encode(pic); err != nil {
-					logrus.Errorf("error while encoding json: %v", err)
+				if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, IMAGE_MIME_TYPE) {
+					fmt.Fprintln(os.Stdout, ES_BULK_LINE_HEADER)
+					if err := jsonEncoder.Encode(pic); err != nil {
+						logrus.Errorf("error while encoding json: %v", err)
+					}
 				}
-
 			}
 		}
 		return nil
@@ -108,11 +111,15 @@ func getFloat(m exif.FileMetadata, k string) *float64 {
 
 func getString(m exif.FileMetadata, k string) *string {
 	v, found := m.Fields[k]
-	if !found {
-		return nil
+	if found {
+		if v2, isStr := v.(string); isStr {
+			return &v2
+		} else if v3, isFloat := v.(float64); isFloat {
+			sv3 := fmt.Sprintf("%v", v3)
+			return &sv3
+		}
 	}
-	v2 := v.(string)
-	return &v2
+	return nil
 }
 
 func getUint64FromFloat64(m exif.FileMetadata, k string) *uint64 {
