@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Install dependencies
-      run: apt-get install -y exiftool
+      run: sudo apt-get install -y exiftool
     
     - name: Get golang dependencies
       run: go get -v -t -d ./...
