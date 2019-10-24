@@ -10,7 +10,7 @@ type Model struct {
 	Height       *uint64
 	Width        *uint64
 	FileSize     uint64
-	Date         *string
+	Date         *uint64
 	GPS          *string
 	FileName     string
 	Folder       string

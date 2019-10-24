@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -100,35 +101,75 @@ func (idxer *Indexer) Index() error {
 	return nil
 }
 
-func getFloat(m exif.FileMetadata, k string) *float64 {
-	v, found := m.Fields[k]
-	if !found {
-		return nil
+func getString(m exif.FileMetadata, k string) *string {
+	v, err := m.GetString(k)
+	switch {
+	case err == nil:
+		return &v
+	case !errors.Is(err, exif.ErrKeyNotFound):
+		logrus.Warnf("error while extracting key %v as string from %v: %v", k, m.File, err)
 	}
-	v2 := v.(float64)
-	return &v2
+	return nil
 }
 
-func getString(m exif.FileMetadata, k string) *string {
-	v, found := m.Fields[k]
-	if found {
-		if v2, isStr := v.(string); isStr {
-			return &v2
-		} else if v3, isFloat := v.(float64); isFloat {
-			sv3 := fmt.Sprintf("%v", v3)
-			return &sv3
+func getStrings(m exif.FileMetadata, k string) []string {
+	v, err := m.GetStrings(k)
+	switch {
+	case err == nil:
+		return v
+	case !errors.Is(err, exif.ErrKeyNotFound):
+		logrus.Warnf("error while extracting key %v as string slice from %v: %v", k, m.File, err)
+	}
+	return nil
+}
+
+func getInt64(m exif.FileMetadata, k string) *uint64 {
+	v, err := m.GetInt(k)
+	switch {
+	case err == nil:
+		uv := uint64(v)
+		return &uv
+	case !errors.Is(err, exif.ErrKeyNotFound):
+		logrus.Warnf("error while extracting key %v as int from %v: %v", k, m.File, err)
+	}
+	return nil
+}
+
+func getFloat64(m exif.FileMetadata, k string) *float64 {
+	v, err := m.GetFloat(k)
+	switch {
+	case err == nil:
+		return &v
+	case !errors.Is(err, exif.ErrKeyNotFound):
+		logrus.Warnf("error while extracting key %v as float from %v: %v", k, m.File, err)
+	}
+	return nil
+}
+
+func getDate(m exif.FileMetadata, k string) *uint64 {
+	if strDate := getString(m, k); strDate != nil {
+		if d, err := time.Parse(SRC_DATE_FORMAT, *strDate); err != nil {
+			logrus.Warnf("error while parsing date from field %v (%v) from %v: %v", k, *strDate, m.File, err)
+			return nil
+		} else {
+			d2 := uint64(d.Unix() * 1000)
+			return &d2
 		}
 	}
 	return nil
 }
 
-func getUint64FromFloat64(m exif.FileMetadata, k string) *uint64 {
-	v, found := m.Fields[k]
-	if !found {
-		return nil
+func getGPS(m exif.FileMetadata, k string) *string {
+	if rawGPS := getString(m, k); rawGPS != nil {
+		lat, long, err := convertGPSCoordinates(*rawGPS)
+		if err != nil {
+			logrus.Warnf("error while parsing GPS coordinates from field %v (%v) from %v: %v", k, *rawGPS, m.File, err)
+			return nil
+		}
+		gps := fmt.Sprintf("%v,%v", lat, long)
+		return &gps
 	}
-	v2 := uint64(v.(float64))
-	return &v2
+	return nil
 }
 
 func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) {
@@ -141,52 +182,22 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 	}
 	meta := metas[0]
 
-	pic.Aperture = getFloat(meta, APERTURE_KEY)
+	pic.Aperture = getFloat64(meta, APERTURE_KEY)
 	pic.ShutterSpeed = getString(meta, SHUTTER_KEY)
 	pic.CameraModel = getString(meta, CAMERA_KEY)
 	pic.LensModel = getString(meta, LENS_KEY)
 	pic.MimeType = getString(meta, MIMETYPE_KEY)
-	pic.Height = getUint64FromFloat64(meta, HEIGHT_KEY)
-	pic.Width = getUint64FromFloat64(meta, WIDTH_KEY)
+	pic.Height = getInt64(meta, HEIGHT_KEY)
+	pic.Width = getInt64(meta, WIDTH_KEY)
+	pic.Keywords = getStrings(meta, KEYWORDS_KEY)
 	pic.FileSize = uint64(fInfo.Size())
 	pic.FileName = fInfo.Name()
+	pic.Date = getDate(meta, CAPTUREDATE_KEY)
+	pic.GPS = getGPS(meta, GPS_KEY)
 
 	components := strings.Split(f, string(os.PathSeparator))
 	if len(components) > 1 {
 		pic.Folder = components[len(components)-2]
-	}
-
-	rawKws, found := meta.Fields[KEYWORDS_KEY]
-	if found {
-		var kws []string
-		if interfaceSlices, is := rawKws.([]interface{}); is {
-			kws = make([]string, len(interfaceSlices))
-			for i, v := range interfaceSlices {
-				kws[i] = v.(string)
-			}
-		} else if str, is := rawKws.(string); is {
-			kws = append(kws, str)
-		}
-		pic.Keywords = kws
-	}
-
-	rawDate, found := meta.Fields[CAPTUREDATE_KEY]
-	if found {
-		if d, err := time.Parse(SRC_DATE_FORMAT, rawDate.(string)); err != nil {
-			return pic, fmt.Errorf("error while parsing date (%v): %v", rawDate.(string), err)
-		} else {
-			d2 := strconv.FormatInt(d.Unix()*1000, 10)
-			pic.Date = &d2
-		}
-	}
-
-	if gpsVal, found := meta.Fields[GPS_KEY]; found {
-		lat, long, err := convertGPSCoordinates(gpsVal.(string))
-		if err != nil {
-			return pic, fmt.Errorf("error while converting gps coordinates (%v): %v", gpsVal, err)
-		}
-		gps := fmt.Sprintf("%v,%v", lat, long)
-		pic.GPS = &gps
 	}
 
 	return pic, nil
