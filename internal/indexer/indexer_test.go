@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -289,4 +290,36 @@ func TestConvertNominal(t *testing.T) {
 	assert.Equal(t, "picture.jpg", m.FileName)
 	assert.Equal(t, "testdata", m.Folder)
 
+}
+
+func TestNewIndexerNominal(t *testing.T) {
+	v1 := false
+	f1 := func(idxer *Indexer) error {
+		v1 = true
+		return nil
+	}
+	v2 := false
+	f2 := func(idxer *Indexer) error {
+		v2 = true
+		return nil
+	}
+	idxer, err := NewIndexer(f1, f2)
+	assert.Nil(t, err)
+	defer idxer.Close()
+	assert.True(t, v1)
+	assert.True(t, v2)
+}
+
+func TestNewIndexerFailureOnOption(t *testing.T) {
+	f := func(idxer *Indexer) error {
+		return fmt.Errorf("error")
+	}
+	_, err := NewIndexer(f)
+	assert.NotNil(t, err)
+}
+
+func TestInput(t *testing.T) {
+	idxer, err := NewIndexer(Input("toto"))
+	assert.Nil(t, err)
+	assert.Equal(t, "toto", idxer.input)
 }
