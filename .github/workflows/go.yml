@@ -22,5 +22,11 @@ jobs:
     - name: Get golang dependencies
       run: go get -v -t -d ./...
 
-    - name: Test
-      run: go test ./...
+    - name: Test with coverage
+      run: go test -covermode=count -coverprofile=coverage.out ./...
+
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+      
