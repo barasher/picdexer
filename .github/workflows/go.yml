@@ -26,8 +26,8 @@ jobs:
       run: go test -covermode=count -coverprofile=coverage.out ./...
 
     - name: Coveralls
-      uses: coverallsapp/github-action@master
+      uses: codecov/codecov-action@v1.0.3
       with:
-        github-token: ${{ secrets.github_token }}
-        path-to-lcov: coverage.out
-      
+        token: ${{secrets.CODECOV_TOKEN}}
+        file: ./coverage.out
+
