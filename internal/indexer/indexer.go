@@ -75,7 +75,7 @@ func (idxer *Indexer) Close() error {
 	return nil
 }
 
-func (idxer *Indexer) Index() error {
+func (idxer *Indexer) Dump() error {
 	jsonEncoder := json.NewEncoder(os.Stdout)
 	err := filepath.Walk(idxer.input, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

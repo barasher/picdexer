@@ -65,3 +65,9 @@ func TestInput(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "toto", idxer.input)
 }
+
+func TestDumpNominal(t *testing.T) {
+	p, err := NewIndexer(Input("../../testdata"))
+	err = p.Dump()
+	assert.Nil(t, err)
+}

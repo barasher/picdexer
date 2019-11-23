@@ -11,9 +11,9 @@ import (
 )
 
 var indexCmd = &cobra.Command{
-	Use:   "index",
-	Short: "Index file/directory",
-	Run:   Index,
+	Use:   "dump",
+	Short: "Dump file/directory",
+	Run:   Dump,
 }
 
 func init() {
@@ -22,15 +22,15 @@ func init() {
 	rootCmd.AddCommand(indexCmd)
 }
 
-func Index(cmd *cobra.Command, args []string) {
-	ret, err := doIndex()
+func Dump(cmd *cobra.Command, args []string) {
+	ret, err := doDump()
 	if err != nil {
 		logrus.Errorf("%v", err)
 	}
 	os.Exit(ret)
 }
 
-func doIndex() (int, error) {
+func doDump() (int, error) {
 	opts := []func(*indexer.Indexer) error{}
 	opts = append(opts, indexer.Input(input))
 
@@ -40,8 +40,8 @@ func doIndex() (int, error) {
 	}
 	defer idxer.Close()
 
-	if err := idxer.Index(); err != nil {
-		return retExecFailure, fmt.Errorf("error while indexing: %v", err)
+	if err := idxer.Dump(); err != nil {
+		return retExecFailure, fmt.Errorf("error while dumping: %v", err)
 	}
 
 	return retOk, nil
