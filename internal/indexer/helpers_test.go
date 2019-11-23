@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	exif "github.com/barasher/go-exiftool"
+	"github.com/barasher/picdexer/internal/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -287,4 +288,34 @@ func TestGetID(t *testing.T) {
 		})
 	}
 
+}
+
+func TestGetBulkEntryHeader(t *testing.T) {
+	d := uint64(1)
+	var tcs = []struct {
+		tcID     string
+		inF      string
+		inD      *uint64
+		expOk    bool
+		expIndex string
+	}{
+		{"nominalWithDate", "../../testdata/picture.jpg", &d, true, indexName},
+		{"nominalWithoutate", "../../testdata/picture.jpg", nil, true, indexNameNoDate},
+		{"failOnID", "../../testdata/nonExisting.jpg", &d, false, ""},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.tcID, func(t *testing.T) {
+			m := model.Model{
+				Date: tc.inD,
+			}
+			h, err := getBulkEntryHeader(tc.inF, m)
+			if tc.expOk {
+				assert.Nil(t, err)
+				assert.Equal(t, tc.expIndex, h.Index.Index)
+			} else {
+				assert.NotNil(t, err)
+			}
+		})
+	}
 }

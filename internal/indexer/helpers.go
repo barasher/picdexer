@@ -6,14 +6,21 @@ import (
 
 	"errors"
 	"fmt"
-	exif "github.com/barasher/go-exiftool"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	exif "github.com/barasher/go-exiftool"
+	"github.com/barasher/picdexer/internal/model"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	indexNameNoDate = "picdexerNoDate"
+	indexName       = "picdexer"
 )
 
 func getID(file string) (string, error) {
@@ -144,4 +151,17 @@ func convertGPSCoordinates(latLong string) (float32, float32, error) {
 		return 0, 0, fmt.Errorf("error while converting longitude (%v): %v", latLong, err)
 	}
 	return lat, long, nil
+}
+
+func getBulkEntryHeader(path string, m model.Model) (bulkEntryHeader, error) {
+	h := bulkEntryHeader{}
+	h.Index.Index = indexNameNoDate
+	var err error
+	if h.Index.ID, err = getID(path); err != nil {
+		return h, fmt.Errorf("Error while computing ID: %w", err)
+	}
+	if m.Date != nil {
+		h.Index.Index = indexName
+	}
+	return h, nil
 }

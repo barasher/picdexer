@@ -82,6 +82,9 @@ PUT /photos
               "ignore_above": 256
             }
           }
+        },
+        "ISO": {
+          "type": "long"
         }
 
       }

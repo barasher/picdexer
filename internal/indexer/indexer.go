@@ -25,11 +25,9 @@ const (
 	GPS_KEY         = "GPSPosition"
 	ISO_KEY         = "ISO"
 
-	SRC_DATE_FORMAT = "2006:01:02 15:04:05"
-
+	SRC_DATE_FORMAT     = "2006:01:02 15:04:05"
 	ES_BULK_LINE_HEADER = "{ \"index\":{} }"
-
-	IMAGE_MIME_TYPE = "image/"
+	IMAGE_MIME_TYPE     = "image/"
 )
 
 type Indexer struct {
@@ -79,8 +77,6 @@ func (idxer *Indexer) Close() error {
 
 func (idxer *Indexer) Index() error {
 	jsonEncoder := json.NewEncoder(os.Stdout)
-	header := bulkEntryHeader{}
-	header.Index.Index = "photos"
 	err := filepath.Walk(idxer.input, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -92,9 +88,9 @@ func (idxer *Indexer) Index() error {
 			} else {
 				if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, IMAGE_MIME_TYPE) {
 					//header
-					var err error
-					if header.Index.ID, err = getID(path); err != nil {
-						logrus.Errorf("error while computing ID: %w", err)
+					header, err := getBulkEntryHeader(path, pic)
+					if err != nil {
+						logrus.Errorf("error while generating header: %v", err)
 						return nil
 					}
 					if err := jsonEncoder.Encode(header); err != nil {
