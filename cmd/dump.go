@@ -40,7 +40,7 @@ func doDump() (int, error) {
 	}
 	defer idxer.Close()
 
-	if err := idxer.Dump(); err != nil {
+	if err := idxer.Dump2(); err != nil {
 		return retExecFailure, fmt.Errorf("error while dumping: %v", err)
 	}
 

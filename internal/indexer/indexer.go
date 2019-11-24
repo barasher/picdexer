@@ -1,11 +1,14 @@
 package indexer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	exif "github.com/barasher/go-exiftool"
 	"github.com/barasher/picdexer/internal/model"
@@ -26,13 +29,13 @@ const (
 	ISO_KEY         = "ISO"
 
 	SRC_DATE_FORMAT     = "2006:01:02 15:04:05"
-	ES_BULK_LINE_HEADER = "{ \"index\":{} }"
 	IMAGE_MIME_TYPE     = "image/"
 )
 
 type Indexer struct {
-	input string
-	exif  *exif.Exiftool
+	input       string
+	exif        *exif.Exiftool
+	threadCount int
 }
 
 type bulkEntryHeader struct {
@@ -55,6 +58,7 @@ func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
 		return idxer, fmt.Errorf("error while initializing metadata extractor: %v", err)
 	}
 	idxer.exif = et
+	idxer.threadCount = runtime.GOMAXPROCS(runtime.NumCPU()) // FIXME
 
 	return idxer, nil
 }
@@ -72,6 +76,113 @@ func (idxer *Indexer) Close() error {
 			logrus.Errorf("error while closing exiftool: %v", err)
 		}
 	}
+	return nil
+}
+
+type extractTask struct {
+	path string
+	info os.FileInfo
+}
+
+type printTask struct {
+	header bulkEntryHeader
+	pic    model.Model
+}
+
+func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, printChan chan printTask) {
+	defer globalWg.Done()
+	jsonEncoder := json.NewEncoder(os.Stdout)
+	for task := range printChan {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		if err := jsonEncoder.Encode(task.header); err != nil {
+			logrus.Errorf("error while encoding header: %v", err)
+			cancel()
+			return
+		}
+		if err := jsonEncoder.Encode(task.pic); err != nil {
+			logrus.Errorf("error while encoding json: %v", err)
+			cancel()
+			return
+		}
+	}
+	//fmt.Printf("print - DONE\n")
+}
+
+func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, consumeChan chan extractTask, printChan chan printTask) {
+	defer globalWg.Done()
+	threadCount := idxer.threadCount
+	var consumeWg sync.WaitGroup
+	consumeWg.Add(threadCount)
+	for i := 0; i < threadCount; i++ {
+		go func(id int) {
+			defer consumeWg.Done()
+			for task := range consumeChan {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				pic, err := idxer.convert(task.path, task.info)
+				if err != nil {
+					logrus.Errorf("%v: %v", task.path, err)
+					cancel()
+					return
+				} else {
+					if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, IMAGE_MIME_TYPE) {
+						header, err := getBulkEntryHeader(task.path, pic)
+						if err != nil {
+							logrus.Errorf("error while generating header: %v", err)
+							cancel()
+							return
+						}
+						printChan <- printTask{header: header, pic: pic}
+
+					}
+				}
+			}
+		}(i)
+	}
+	consumeWg.Wait()
+	close(printChan)
+}
+
+func (idxer *Indexer) Dump2() error {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	consumeChan := make(chan extractTask, idxer.threadCount*3)
+	printChan := make(chan printTask, idxer.threadCount)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go startPrint(ctx, cancel, &wg, printChan)
+	go idxer.startConsumers(ctx, cancel, &wg, consumeChan, printChan)
+
+	err := filepath.Walk(idxer.input, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			consumeChan <- extractTask{
+				path: path,
+				info: info,
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		cancel()
+		return fmt.Errorf("error while browsing directory: %v", err)
+	}
+	close(consumeChan)
+	wg.Wait()
+
+	//fmt.Printf("Dump2 - DONE\n")
 	return nil
 }
 
