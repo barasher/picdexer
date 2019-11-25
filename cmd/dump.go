@@ -10,16 +10,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var indexCmd = &cobra.Command{
+var dumpCmd = &cobra.Command{
 	Use:   "dump",
 	Short: "Dump file/directory",
 	Run:   Dump,
 }
 
 func init() {
-	indexCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
-	indexCmd.MarkFlagRequired("dir")
-	rootCmd.AddCommand(indexCmd)
+	dumpCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
+	dumpCmd.MarkFlagRequired("dir")
+	rootCmd.AddCommand(dumpCmd)
 }
 
 func Dump(cmd *cobra.Command, args []string) {
@@ -40,7 +40,7 @@ func doDump() (int, error) {
 	}
 	defer idxer.Close()
 
-	if err := idxer.Dump2(); err != nil {
+	if err := idxer.Dump(os.Stdout); err != nil {
 		return retExecFailure, fmt.Errorf("error while dumping: %v", err)
 	}
 

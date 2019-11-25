@@ -21,6 +21,7 @@ var (
 )
 
 var input string
+var esUrl string
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {

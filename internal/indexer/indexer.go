@@ -1,14 +1,18 @@
 package indexer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	exif "github.com/barasher/go-exiftool"
 	"github.com/barasher/picdexer/internal/model"
@@ -28,8 +32,10 @@ const (
 	GPS_KEY         = "GPSPosition"
 	ISO_KEY         = "ISO"
 
-	SRC_DATE_FORMAT     = "2006:01:02 15:04:05"
-	IMAGE_MIME_TYPE     = "image/"
+	SRC_DATE_FORMAT = "2006:01:02 15:04:05"
+	IMAGE_MIME_TYPE = "image/"
+
+	NDJSON_CONTENTTYPE = "application/x-ndjson"
 )
 
 type Indexer struct {
@@ -58,7 +64,7 @@ func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
 		return idxer, fmt.Errorf("error while initializing metadata extractor: %v", err)
 	}
 	idxer.exif = et
-	idxer.threadCount = runtime.GOMAXPROCS(runtime.NumCPU()) // FIXME
+	idxer.threadCount = runtime.GOMAXPROCS(runtime.NumCPU())
 
 	return idxer, nil
 }
@@ -89,9 +95,9 @@ type printTask struct {
 	pic    model.Model
 }
 
-func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, printChan chan printTask) {
+func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, printChan chan printTask, writer io.Writer) {
 	defer globalWg.Done()
-	jsonEncoder := json.NewEncoder(os.Stdout)
+	jsonEncoder := json.NewEncoder(writer)
 	for task := range printChan {
 		select {
 		case <-ctx.Done():
@@ -110,7 +116,6 @@ func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.W
 			return
 		}
 	}
-	//fmt.Printf("print - DONE\n")
 }
 
 func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, consumeChan chan extractTask, printChan chan printTask) {
@@ -152,7 +157,7 @@ func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelF
 	close(printChan)
 }
 
-func (idxer *Indexer) Dump2() error {
+func (idxer *Indexer) Dump(writer io.Writer) error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	consumeChan := make(chan extractTask, idxer.threadCount*3)
@@ -160,7 +165,7 @@ func (idxer *Indexer) Dump2() error {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go startPrint(ctx, cancel, &wg, printChan)
+	go startPrint(ctx, cancel, &wg, printChan, writer)
 	go idxer.startConsumers(ctx, cancel, &wg, consumeChan, printChan)
 
 	err := filepath.Walk(idxer.input, func(path string, info os.FileInfo, err error) error {
@@ -181,47 +186,6 @@ func (idxer *Indexer) Dump2() error {
 	}
 	close(consumeChan)
 	wg.Wait()
-
-	//fmt.Printf("Dump2 - DONE\n")
-	return nil
-}
-
-func (idxer *Indexer) Dump() error {
-	jsonEncoder := json.NewEncoder(os.Stdout)
-	err := filepath.Walk(idxer.input, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			pic, err := idxer.convert(path, info)
-			if err != nil {
-				logrus.Errorf("%v: %v", path, err)
-			} else {
-				if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, IMAGE_MIME_TYPE) {
-					//header
-					header, err := getBulkEntryHeader(path, pic)
-					if err != nil {
-						logrus.Errorf("error while generating header: %v", err)
-						return nil
-					}
-					if err := jsonEncoder.Encode(header); err != nil {
-						logrus.Errorf("error while encoding header: %v", err)
-						return nil
-					}
-					// body
-					if err := jsonEncoder.Encode(pic); err != nil {
-						logrus.Errorf("error while encoding json: %v", err)
-						return nil
-					}
-				}
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error while browsing directory: %v", err)
-	}
-
 	return nil
 }
 
@@ -255,4 +219,21 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 	}
 
 	return pic, nil
+}
+
+func (idxer *Indexer) Push(esUrl string, buffer *bytes.Buffer) error {
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := httpClient.Post(esUrl, NDJSON_CONTENTTYPE, buffer)
+	if err != nil {
+		return fmt.Errorf("Error while pushing to Elasticsearch: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("Wrong status code (%v)", resp.StatusCode)
+	}
+
+	return nil
 }

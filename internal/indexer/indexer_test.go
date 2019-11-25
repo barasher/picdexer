@@ -1,7 +1,11 @@
 package indexer
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -68,6 +72,51 @@ func TestInput(t *testing.T) {
 
 func TestDumpNominal(t *testing.T) {
 	p, err := NewIndexer(Input("../../testdata"))
-	err = p.Dump()
+	err = p.Dump(os.Stdout)
 	assert.Nil(t, err)
+}
+
+func TestPushNominal(t *testing.T) {
+	content := "content"
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, NDJSON_CONTENTTYPE,req.Header.Get("Content-Type"))
+		body, _ := ioutil.ReadAll(req.Body)
+		assert.Equal(t, content, string(body))
+		rw.WriteHeader(200)
+	}))
+	defer server.Close()
+
+	idxer, err := NewIndexer()
+	assert.Nil(t, err)
+	defer idxer.Close()
+
+	buf := bytes.NewBufferString(content)
+	err = idxer.Push(server.URL, buf)
+	assert.Nil(t, err)
+}
+
+func TestPushWrongStatusCode(t *testing.T) {
+	content := "content"
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(500)
+	}))
+	defer server.Close()
+
+	idxer, err := NewIndexer()
+	assert.Nil(t, err)
+	defer idxer.Close()
+
+	buf := bytes.NewBufferString(content)
+	err = idxer.Push(server.URL, buf)
+	assert.NotNil(t, err)
+}
+
+func TestPushPostFailure(t *testing.T) {
+	idxer, err := NewIndexer()
+	assert.Nil(t, err)
+	defer idxer.Close()
+
+	buf := bytes.NewBufferString("blabla")
+	err = idxer.Push("aaa", buf)
+	assert.NotNil(t, err)
 }
