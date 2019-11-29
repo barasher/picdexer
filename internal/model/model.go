@@ -7,7 +7,7 @@ import (
 type Model struct {
 	FileName     string
 	Folder       string
-	ImportID string
+	ImportID     string
 	FileSize     uint64
 	ISO          *uint64    `json:",omitempty"`
 	Aperture     *float64   `json:",omitempty"`

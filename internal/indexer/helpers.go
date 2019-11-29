@@ -24,6 +24,7 @@ const (
 	indexName       = "picdexer"
 	importIdCtxKey  = "impID"
 )
+
 var defaultDate = uint64(0)
 
 func getID(file string) (string, error) {
@@ -178,7 +179,7 @@ func BuildContext(impID string) context.Context {
 }
 
 func getImportID(ctx context.Context) string {
-	if v:= ctx.Value(importIdCtxKey) ; v != nil {
+	if v := ctx.Value(importIdCtxKey); v != nil {
 		return v.(string)
 	}
 	return ""

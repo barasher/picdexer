@@ -79,7 +79,7 @@ func TestDumpNominal(t *testing.T) {
 func TestPushNominal(t *testing.T) {
 	content := "content"
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, ndJsonMimeType,req.Header.Get("Content-Type"))
+		assert.Equal(t, ndJsonMimeType, req.Header.Get("Content-Type"))
 		body, _ := ioutil.ReadAll(req.Body)
 		assert.Equal(t, content, string(body))
 		rw.WriteHeader(200)
@@ -91,7 +91,7 @@ func TestPushNominal(t *testing.T) {
 	defer idxer.Close()
 
 	buf := bytes.NewBufferString(content)
-	err = idxer.Push(context.Background(),server.URL, buf)
+	err = idxer.Push(context.Background(), server.URL, buf)
 	assert.Nil(t, err)
 }
 
@@ -107,7 +107,7 @@ func TestPushWrongStatusCode(t *testing.T) {
 	defer idxer.Close()
 
 	buf := bytes.NewBufferString(content)
-	err = idxer.Push(context.Background(),server.URL, buf)
+	err = idxer.Push(context.Background(), server.URL, buf)
 	assert.NotNil(t, err)
 }
 
@@ -117,6 +117,6 @@ func TestPushPostFailure(t *testing.T) {
 	defer idxer.Close()
 
 	buf := bytes.NewBufferString("blabla")
-	err = idxer.Push(context.Background(),"aaa", buf)
+	err = idxer.Push(context.Background(), "aaa", buf)
 	assert.NotNil(t, err)
 }

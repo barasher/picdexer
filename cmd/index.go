@@ -44,11 +44,11 @@ func doIndex() (int, error) {
 	}
 	defer idxer.Close()
 
-	var buffer  bytes.Buffer
+	var buffer bytes.Buffer
 	if err := idxer.Dump(ctx, &buffer); err != nil {
 		return retExecFailure, fmt.Errorf("error while dumping: %v", err)
 	}
-	if err := idxer.Push(ctx, esUrl, &buffer) ; err != nil{
+	if err := idxer.Push(ctx, esUrl, &buffer); err != nil {
 		return retExecFailure, fmt.Errorf("error while pushing: %v", err)
 	}
 

@@ -18,7 +18,7 @@ var dumpCmd = &cobra.Command{
 
 func init() {
 	dumpCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
-	dumpCmd.Flags().StringVarP(&importID, "impId", "i", "","Import identifier")
+	dumpCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	dumpCmd.MarkFlagRequired("dir")
 	rootCmd.AddCommand(dumpCmd)
 }
