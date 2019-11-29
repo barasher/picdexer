@@ -1,0 +1,5 @@
+TODO :
+- handle properly context.Context
+- add a 'push' command that takes a dump file
+- add an importIdentifier field
+- integrate a default date when field not found
