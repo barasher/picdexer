@@ -20,22 +20,22 @@ import (
 )
 
 const (
-	APERTURE_KEY    = "Aperture"
-	SHUTTER_KEY     = "ShutterSpeed"
-	KEYWORDS_KEY    = "Keywords"
-	CAMERA_KEY      = "Model"
-	LENS_KEY        = "LensModel"
-	MIMETYPE_KEY    = "MIMEType"
-	HEIGHT_KEY      = "ImageHeight"
-	WIDTH_KEY       = "ImageWidth"
-	CAPTUREDATE_KEY = "CreateDate"
-	GPS_KEY         = "GPSPosition"
-	ISO_KEY         = "ISO"
+	apertureKey    = "Aperture"
+	shutterKey     = "ShutterSpeed"
+	keywordsKey    = "Keywords"
+	cameraKey      = "Model"
+	lensKey        = "LensModel"
+	mimeTypeKey    = "MIMEType"
+	heightKey      = "ImageHeight"
+	widthKey       = "ImageWidth"
+	captureDateKey = "CreateDate"
+	gpsKey         = "GPSPosition"
+	isoKey         = "ISO"
 
-	SRC_DATE_FORMAT = "2006:01:02 15:04:05"
-	IMAGE_MIME_TYPE = "image/"
+	srcDateFormat = "2006:01:02 15:04:05"
+	imageMimeType = "image/"
 
-	NDJSON_CONTENTTYPE = "application/x-ndjson"
+	ndJsonMimeType = "application/x-ndjson"
 )
 
 type Indexer struct {
@@ -133,13 +133,13 @@ func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelF
 				default:
 				}
 
-				pic, err := idxer.convert(task.path, task.info)
+				pic, err := idxer.convert(ctx, task.path, task.info)
 				if err != nil {
 					logrus.Errorf("%v: %v", task.path, err)
 					cancel()
 					return
 				} else {
-					if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, IMAGE_MIME_TYPE) {
+					if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, imageMimeType) {
 						header, err := getBulkEntryHeader(task.path, pic)
 						if err != nil {
 							logrus.Errorf("error while generating header: %v", err)
@@ -157,8 +157,8 @@ func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelF
 	close(printChan)
 }
 
-func (idxer *Indexer) Dump(writer io.Writer) error {
-	ctx, cancel := context.WithCancel(context.Background())
+func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
+	ctx, cancel := context.WithCancel(ctx)
 
 	consumeChan := make(chan extractTask, idxer.threadCount*3)
 	printChan := make(chan printTask, idxer.threadCount)
@@ -189,7 +189,7 @@ func (idxer *Indexer) Dump(writer io.Writer) error {
 	return nil
 }
 
-func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) {
+func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) (model.Model, error) {
 	logrus.Infof("%v", f)
 	pic := model.Model{}
 
@@ -199,19 +199,20 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 	}
 	meta := metas[0]
 
-	pic.Aperture = getFloat64(meta, APERTURE_KEY)
-	pic.ISO = getInt64(meta, ISO_KEY)
-	pic.ShutterSpeed = getString(meta, SHUTTER_KEY)
-	pic.CameraModel = getString(meta, CAMERA_KEY)
-	pic.LensModel = getString(meta, LENS_KEY)
-	pic.MimeType = getString(meta, MIMETYPE_KEY)
-	pic.Height = getInt64(meta, HEIGHT_KEY)
-	pic.Width = getInt64(meta, WIDTH_KEY)
-	pic.Keywords = getStrings(meta, KEYWORDS_KEY)
+	pic.ImportID = getImportID(ctx)
+	pic.Aperture = getFloat64(meta, apertureKey)
+	pic.ISO = getInt64(meta, isoKey)
+	pic.ShutterSpeed = getString(meta, shutterKey)
+	pic.CameraModel = getString(meta, cameraKey)
+	pic.LensModel = getString(meta, lensKey)
+	pic.MimeType = getString(meta, mimeTypeKey)
+	pic.Height = getInt64(meta, heightKey)
+	pic.Width = getInt64(meta, widthKey)
+	pic.Keywords = getStrings(meta, keywordsKey)
 	pic.FileSize = uint64(fInfo.Size())
 	pic.FileName = fInfo.Name()
-	pic.Date = getDate(meta, CAPTUREDATE_KEY)
-	pic.GPS = getGPS(meta, GPS_KEY)
+	pic.Date = getDate(meta, captureDateKey)
+	pic.GPS = getGPS(meta, gpsKey)
 
 	components := strings.Split(f, string(os.PathSeparator))
 	if len(components) > 1 {
@@ -221,11 +222,11 @@ func (idxer *Indexer) convert(f string, fInfo os.FileInfo) (model.Model, error) 
 	return pic, nil
 }
 
-func (idxer *Indexer) Push(esUrl string, buffer *bytes.Buffer) error {
+func (idxer *Indexer) Push(ctx context.Context, esUrl string, buffer *bytes.Buffer) error {
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	resp, err := httpClient.Post(esUrl, NDJSON_CONTENTTYPE, buffer)
+	resp, err := httpClient.Post(esUrl, ndJsonMimeType, buffer)
 	if err != nil {
 		return fmt.Errorf("Error while pushing to Elasticsearch: %v", err)
 	}

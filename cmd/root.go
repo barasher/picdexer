@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
+	"os"
 )
 
 const (
@@ -22,6 +21,7 @@ var (
 
 var input string
 var esUrl string
+var importID string
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -29,3 +29,4 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+

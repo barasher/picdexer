@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 
@@ -21,7 +22,9 @@ import (
 const (
 	indexNameNoDate = "picdexerNoDate"
 	indexName       = "picdexer"
+	importIdCtxKey  = "impID"
 )
+var defaultDate = uint64(0)
 
 func getID(file string) (string, error) {
 	f, err := os.Open(file)
@@ -85,15 +88,15 @@ func getFloat64(m exif.FileMetadata, k string) *float64 {
 
 func getDate(m exif.FileMetadata, k string) *uint64 {
 	if strDate := getString(m, k); strDate != nil {
-		if d, err := time.Parse(SRC_DATE_FORMAT, *strDate); err != nil {
+		if d, err := time.Parse(srcDateFormat, *strDate); err != nil {
 			logrus.Warnf("error while parsing date from field %v (%v) from %v: %v", k, *strDate, m.File, err)
-			return nil
+			return &defaultDate
 		} else {
 			d2 := uint64(d.Unix() * 1000)
 			return &d2
 		}
 	}
-	return nil
+	return &defaultDate
 }
 
 func getGPS(m exif.FileMetadata, k string) *string {
@@ -164,4 +167,19 @@ func getBulkEntryHeader(path string, m model.Model) (bulkEntryHeader, error) {
 		h.Index.Index = indexName
 	}
 	return h, nil
+}
+
+func BuildContext(impID string) context.Context {
+	id := impID
+	if id == "" {
+		id = strconv.FormatInt(time.Now().UnixNano(), 10)
+	}
+	return context.WithValue(context.Background(), importIdCtxKey, id)
+}
+
+func getImportID(ctx context.Context) string {
+	if v:= ctx.Value(importIdCtxKey) ; v != nil {
+		return v.(string)
+	}
+	return ""
 }

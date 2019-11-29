@@ -37,6 +37,7 @@ func doIndex() (int, error) {
 	opts := []func(*indexer.Indexer) error{}
 	opts = append(opts, indexer.Input(input))
 
+	ctx := indexer.BuildContext(importID)
 	idxer, err := indexer.NewIndexer(opts...)
 	if err != nil {
 		return retExecFailure, fmt.Errorf("error while initializing indexer: %v", err)
@@ -44,10 +45,10 @@ func doIndex() (int, error) {
 	defer idxer.Close()
 
 	var buffer  bytes.Buffer
-	if err := idxer.Dump(&buffer); err != nil {
+	if err := idxer.Dump(ctx, &buffer); err != nil {
 		return retExecFailure, fmt.Errorf("error while dumping: %v", err)
 	}
-	if err := idxer.Push(esUrl, &buffer) ; err != nil{
+	if err := idxer.Push(ctx, esUrl, &buffer) ; err != nil{
 		return retExecFailure, fmt.Errorf("error while pushing: %v", err)
 	}
 

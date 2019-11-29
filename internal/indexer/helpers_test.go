@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"testing"
 
 	exif "github.com/barasher/go-exiftool"
@@ -215,9 +216,9 @@ func TestGetDate(t *testing.T) {
 		expValNil bool
 		expVal    uint64
 	}{
-		{"string", true, 0},
+		{"string", false, defaultDate},
 		{"date", false, 981173106000},
-		{"nonExisting", true, 0},
+		{"nonExisting", false, defaultDate},
 	}
 
 	for _, tc := range tcs {
@@ -318,4 +319,28 @@ func TestGetBulkEntryHeader(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildContextWithProvidedID(t *testing.T) {
+	ctx := BuildContext("anID")
+	v := ctx.Value(importIdCtxKey)
+	assert.NotNil(t, v)
+	assert.Equal(t, "anID", v.(string))
+}
+
+func TestBuildContextWithGeneratedID(t *testing.T) {
+	ctx := BuildContext("")
+	v := ctx.Value(importIdCtxKey)
+	assert.NotNil(t, v)
+	assert.NotZero(t, v.(string))
+}
+
+func TestGetImportIDWithID(t *testing.T) {
+	ctx := BuildContext("anID")
+	assert.Equal(t, "anID", getImportID(ctx))
+}
+
+func TestGetImportIDWithoutID(t *testing.T) {
+	ctx := context.Background()
+	assert.Equal(t, "", getImportID(ctx))
 }

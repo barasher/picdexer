@@ -83,6 +83,15 @@ PUT /photos
             }
           }
         },
+        "ImportID": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
         "ISO": {
           "type": "long"
         }
