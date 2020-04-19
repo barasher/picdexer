@@ -17,11 +17,11 @@ var (
 		Use:   "picdexer",
 		Short: "Picture indexer",
 	}
+	input    string
+	esUrl    string // TODO delete
+	importID string
+	confFile string
 )
-
-var input string
-var esUrl string
-var importID string
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {

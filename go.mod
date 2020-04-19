@@ -11,5 +11,5 @@ require (
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
 	golang.org/x/sys v0.0.0-20191023151326-f89234f9a2c2 // indirect
-	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f // indirect
+	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f
 )

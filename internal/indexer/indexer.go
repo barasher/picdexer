@@ -5,9 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/barasher/picdexer/conf"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -36,12 +39,14 @@ const (
 	imageMimeType = "image/"
 
 	ndJsonMimeType = "application/x-ndjson"
+	bulkSuffix     = "_bulk"
 )
 
 type Indexer struct {
+	conf        conf.Conf
 	input       string
 	exif        *exif.Exiftool
-	threadCount int
+	threadCount int // TODO rendre configurable
 }
 
 type bulkEntryHeader struct {
@@ -72,6 +77,13 @@ func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
 func Input(input string) func(*Indexer) error {
 	return func(idxer *Indexer) error {
 		idxer.input = input
+		return nil
+	}
+}
+
+func WithConfiguration(c conf.Conf) func(*Indexer) error {
+	return func(idxer *Indexer) error {
+		idxer.conf = c
 		return nil
 	}
 }
@@ -222,11 +234,17 @@ func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) 
 	return pic, nil
 }
 
-func (idxer *Indexer) Push(ctx context.Context, esUrl string, buffer *bytes.Buffer) error {
+func (idxer *Indexer) Push(ctx context.Context, buffer *bytes.Buffer) error {
+	u, err := url.Parse(idxer.conf.Elasticsearch.Url)
+	if err != nil {
+		return fmt.Errorf("error while parsing elasticsearch url (%v): %w", idxer.conf.Elasticsearch.Url, err)
+	}
+	u.Path = path.Join(u.Path, bulkSuffix)
+
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	resp, err := httpClient.Post(esUrl, ndJsonMimeType, buffer)
+	resp, err := httpClient.Post(u.String(), ndJsonMimeType, buffer)
 	if err != nil {
 		return fmt.Errorf("Error while pushing to Elasticsearch: %v", err)
 	}

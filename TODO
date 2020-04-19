@@ -1,2 +1,4 @@
 TODO :
 - add a 'push' command that takes a dump file
+- Supprimer Logrus
+- Gérer le logging level
