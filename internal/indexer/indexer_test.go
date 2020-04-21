@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/barasher/picdexer/conf"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -86,12 +87,13 @@ func TestPushNominal(t *testing.T) {
 	}))
 	defer server.Close()
 
-	idxer, err := NewIndexer()
+	c := conf.Conf{Elasticsearch: conf.ElasticsearchConf{Url: server.URL}}
+	idxer, err := NewIndexer(WithConfiguration(c))
 	assert.Nil(t, err)
 	defer idxer.Close()
 
 	buf := bytes.NewBufferString(content)
-	err = idxer.Push(context.Background(), server.URL, buf)
+	err = idxer.Push(context.Background(), buf)
 	assert.Nil(t, err)
 }
 
@@ -102,12 +104,13 @@ func TestPushWrongStatusCode(t *testing.T) {
 	}))
 	defer server.Close()
 
-	idxer, err := NewIndexer()
+	c := conf.Conf{Elasticsearch: conf.ElasticsearchConf{Url: server.URL}}
+	idxer, err := NewIndexer(WithConfiguration(c))
 	assert.Nil(t, err)
 	defer idxer.Close()
 
 	buf := bytes.NewBufferString(content)
-	err = idxer.Push(context.Background(), server.URL, buf)
+	err = idxer.Push(context.Background(), buf)
 	assert.NotNil(t, err)
 }
 
@@ -117,6 +120,6 @@ func TestPushPostFailure(t *testing.T) {
 	defer idxer.Close()
 
 	buf := bytes.NewBufferString("blabla")
-	err = idxer.Push(context.Background(), "aaa", buf)
+	err = idxer.Push(context.Background(), buf)
 	assert.NotNil(t, err)
 }
