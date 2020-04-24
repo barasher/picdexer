@@ -19,19 +19,19 @@ var (
 	metaSimuCmd = &cobra.Command{
 		Use:   "simulate",
 		Short: "Simulate metadata extraction",
-		RunE:  simulate,
+		RunE:  simulateMeta,
 	}
 
 	metaDisplayCmd = &cobra.Command{
 		Use:   "display",
 		Short: "Display file metadata",
-		RunE:  display,
+		RunE:  displayMeta,
 	}
 
 	metaIndexCmd = &cobra.Command{
 		Use:   "index",
 		Short: "Index file/directory",
-		RunE:  index,
+		RunE:  indexMeta,
 	}
 )
 
@@ -58,7 +58,7 @@ func init() {
 	rootCmd.AddCommand(metaCmd)
 }
 
-func simulate(cmd *cobra.Command, args []string) error {
+func simulateMeta(cmd *cobra.Command, args []string) error {
 	opts := []func(*indexer.Indexer) error{}
 	opts = append(opts, indexer.Input(input))
 	if confFile != "" {
@@ -83,7 +83,7 @@ func simulate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func display(cmd *cobra.Command, args []string) error {
+func displayMeta(cmd *cobra.Command, args []string) error {
 	et, err := exif.NewExiftool()
 	if err != nil {
 		return fmt.Errorf("error while initializing metadata extractor: %v", err)
@@ -106,7 +106,7 @@ func display(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func index(cmd *cobra.Command, args []string) error {
+func indexMeta(cmd *cobra.Command, args []string) error {
 	opts := []func(*indexer.Indexer) error{}
 	opts = append(opts, indexer.Input(input))
 	if confFile != "" {

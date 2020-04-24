@@ -18,7 +18,7 @@ var (
 		Short: "Picture indexer",
 	}
 	input    string
-	esUrl    string // TODO delete
+	output   string
 	importID string
 	confFile string
 )
