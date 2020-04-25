@@ -20,8 +20,7 @@ type BinaryConf struct {
 	Url string `json:"url"`
 	Height uint `json:"height"`
 	Width uint`json:"width"`
-	ConversionThreads uint
-	PushThreads uint
+	Threads int `json:"threads"`
 	Compression uint
 }
 

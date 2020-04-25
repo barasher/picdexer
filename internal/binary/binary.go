@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 const fileIdentifier = "file"
@@ -41,8 +42,8 @@ func NewStorer(c conf.BinaryConf, push bool) (*Storer, error) {
 	return s, nil
 }
 
-func (s *Storer) StoreFolder(ctx context.Context, f string, o string) error {
-	c := make(chan string, s.conf.ConversionThreads)
+func (s *Storer) StoreFolder(ctx context.Context, f string, o string) {
+	c := make(chan string, s.conf.Threads*2)
 	go func() {
 		err := filepath.Walk(f, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -58,10 +59,56 @@ func (s *Storer) StoreFolder(ctx context.Context, f string, o string) error {
 			logrus.Errorf("error while browsing folder %v: %w", f, err)
 		}
 	}()
-	return s.StoreChannel(ctx, c, o)
+	s.StoreChannel(ctx, c, o)
 }
 
-func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) error {
+func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) {
+	wg := &sync.WaitGroup{}
+	wg.Add(s.conf.Threads)
+	for i := 0; i < s.conf.Threads; i++ {
+		cur := i
+		go s.storeChannel(ctx, cur, c, o, wg)
+	}
+	wg.Wait()
+}
+
+func (s *Storer) storeChannel(ctx context.Context, threadId int, c <-chan string, o string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	subLog := log.With().Int("threadId", threadId).Logger()
+
+	var dir = o
+	var err error
+	if o == "" {
+		dir, err = ioutil.TempDir(os.TempDir(), "picdexer")
+		if err != nil {
+			subLog.Error().Msgf("error while creating temporary folder: %w", err)
+			return
+		}
+		defer os.RemoveAll(dir)
+		subLog.Debug().Msgf("Resized pictures temporary folder: %v", dir)
+	}
+
+	for cur := range c {
+
+		subLog.Debug().Str(fileIdentifier, cur).Msg("Resizing...")
+		outBin, outKey, err := s.resizer.resize(ctx, cur, dir)
+		if err != nil {
+			subLog.Error().Str(fileIdentifier, cur).Msgf("Error while resizing: %v", err)
+			continue
+		}
+
+		subLog.Debug().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msg("Pushing...")
+		err = s.pusher.push(outBin, outKey)
+		if err != nil {
+			subLog.Error().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msgf("Error while pushing: %v", err)
+			continue
+		}
+
+	}
+}
+
+/*func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) error {
 	var dir = o
 	var err error
 	if o == "" {
@@ -91,4 +138,4 @@ func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) er
 
 	}
 	return nil
-}
+}*/

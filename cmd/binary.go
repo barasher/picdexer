@@ -62,9 +62,7 @@ func doBin(push bool) error {
 	}
 
 	ctx := context.Background()
-	if err = s.StoreFolder(ctx, input, output); err != nil {
-		return fmt.Errorf("error while storing (%v): %w", input, err)
-	}
+	s.StoreFolder(ctx, input, output)
 
 	return nil
 }

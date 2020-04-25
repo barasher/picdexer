@@ -82,8 +82,7 @@ func TestStoreFolder(t *testing.T) {
 				resizer: tc.inResizerI,
 				pusher:  tc.inPushI,
 			}
-			err := s.StoreFolder(context.TODO(), "../../testdata/picture.jpg", "")
-			assert.Nil(t, err)
+			s.StoreFolder(context.TODO(), "../../testdata/picture.jpg", "")
 		})
 	}
 
