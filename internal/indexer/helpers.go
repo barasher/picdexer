@@ -15,7 +15,6 @@ import (
 	"time"
 
 	exif "github.com/barasher/go-exiftool"
-	"github.com/barasher/picdexer/internal/model"
 	"github.com/sirupsen/logrus"
 )
 
@@ -157,7 +156,7 @@ func convertGPSCoordinates(latLong string) (float32, float32, error) {
 	return lat, long, nil
 }
 
-func getBulkEntryHeader(path string, m model.Model) (bulkEntryHeader, error) {
+func getBulkEntryHeader(path string, m Model) (bulkEntryHeader, error) {
 	h := bulkEntryHeader{}
 	h.Index.Index = indexNameNoDate
 	var err error

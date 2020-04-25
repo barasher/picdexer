@@ -18,7 +18,6 @@ import (
 	"time"
 
 	exif "github.com/barasher/go-exiftool"
-	"github.com/barasher/picdexer/internal/model"
 	"github.com/sirupsen/logrus"
 )
 
@@ -104,7 +103,7 @@ type extractTask struct {
 
 type printTask struct {
 	header bulkEntryHeader
-	pic    model.Model
+	pic    Model
 }
 
 func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, printChan chan printTask, writer io.Writer) {
@@ -201,9 +200,9 @@ func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 	return nil
 }
 
-func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) (model.Model, error) {
+func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) (Model, error) {
 	logrus.Infof("%v", f)
-	pic := model.Model{}
+	pic := Model{}
 
 	metas := idxer.exif.ExtractMetadata(f)
 	if len(metas) != 1 {

@@ -7,9 +7,9 @@ import (
 )
 
 type Conf struct {
-	LogLevel string // TODO gérer
+	LogLevel      string
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
-	Binary BinaryConf `json:"binary"`
+	Binary        BinaryConf        `json:"binary"`
 }
 
 type ElasticsearchConf struct {
@@ -17,11 +17,10 @@ type ElasticsearchConf struct {
 }
 
 type BinaryConf struct {
-	Url string `json:"url"`
-	Height uint `json:"height"`
-	Width uint`json:"width"`
-	Threads int `json:"threads"`
-	Compression uint
+	Url     string `json:"url"`
+	Height  uint   `json:"height"`
+	Width   uint   `json:"width"`
+	Threads int    `json:"threads"`
 }
 
 func LoadConf(f string) (Conf, error) {

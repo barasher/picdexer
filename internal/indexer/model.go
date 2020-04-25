@@ -1,4 +1,4 @@
-package model
+package indexer
 
 import (
 	"time"

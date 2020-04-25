@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	exif "github.com/barasher/go-exiftool"
-	"github.com/barasher/picdexer/internal/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -307,7 +306,7 @@ func TestGetBulkEntryHeader(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			m := model.Model{
+			m := Model{
 				Date: tc.inD,
 			}
 			h, err := getBulkEntryHeader(tc.inF, m)
