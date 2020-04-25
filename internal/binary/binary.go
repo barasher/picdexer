@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/barasher/picdexer/conf"
+	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sync"
 )
 
@@ -44,14 +44,8 @@ func NewStorer(c conf.BinaryConf, push bool) (*Storer, error) {
 func (s *Storer) StoreFolder(ctx context.Context, f string, o string) {
 	c := make(chan string, s.conf.Threads*2)
 	go func() {
-		err := filepath.Walk(f, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() {
-				c <- path
-			}
-			return nil
+		err := common.BrowseImages(f, func(path string, info os.FileInfo) {
+			c <- path
 		})
 		close(c)
 		if err != nil {

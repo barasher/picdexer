@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/barasher/picdexer/conf"
+	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -35,7 +35,6 @@ const (
 	isoKey         = "ISO"
 
 	srcDateFormat = "2006:01:02 15:04:05"
-	imageMimeType = "image/"
 
 	ndJsonMimeType = "application/x-ndjson"
 	bulkSuffix     = "_bulk"
@@ -150,16 +149,13 @@ func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelF
 					cancel()
 					return
 				} else {
-					if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, imageMimeType) {
-						header, err := getBulkEntryHeader(task.path, pic)
-						if err != nil {
-							log.Error().Str(logFileIdentifier, task.path).Msgf("error while generating header: %v", err)
-							cancel()
-							return
-						}
-						printChan <- printTask{header: header, pic: pic}
-
+					header, err := getBulkEntryHeader(task.path, pic)
+					if err != nil {
+						log.Error().Str(logFileIdentifier, task.path).Msgf("error while generating header: %v", err)
+						cancel()
+						return
 					}
+					printChan <- printTask{header: header, pic: pic}
 				}
 			}
 		}(i)
@@ -179,17 +175,11 @@ func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 	go startPrint(ctx, cancel, &wg, printChan, writer)
 	go idxer.startConsumers(ctx, cancel, &wg, consumeChan, printChan)
 
-	err := filepath.Walk(idxer.input, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	err := common.BrowseImages(idxer.input, func(path string, info os.FileInfo) {
+		consumeChan <- extractTask{
+			path: path,
+			info: info,
 		}
-		if !info.IsDir() {
-			consumeChan <- extractTask{
-				path: path,
-				info: info,
-			}
-		}
-		return nil
 	})
 	if err != nil {
 		cancel()
