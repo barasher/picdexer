@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"github.com/rs/zerolog/log"
 
 	"errors"
 	"fmt"
@@ -15,13 +16,13 @@ import (
 	"time"
 
 	exif "github.com/barasher/go-exiftool"
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	indexNameNoDate = "picdexerNoDate"
-	indexName       = "picdexer"
-	importIdCtxKey  = "impID"
+	indexNameNoDate   = "picdexerNoDate"
+	indexName         = "picdexer"
+	importIdCtxKey    = "impID"
+	logFileIdentifier = "file"
 )
 
 var defaultDate = uint64(0)
@@ -47,7 +48,7 @@ func getString(m exif.FileMetadata, k string) *string {
 	case err == nil:
 		return &v
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		logrus.Warnf("error while extracting key %v as string from %v: %v", k, m.File, err)
+		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as string: %v", k, err)
 	}
 	return nil
 }
@@ -58,7 +59,7 @@ func getStrings(m exif.FileMetadata, k string) []string {
 	case err == nil:
 		return v
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		logrus.Warnf("error while extracting key %v as string slice from %v: %v", k, m.File, err)
+		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as string slice: %v", k, err)
 	}
 	return nil
 }
@@ -70,7 +71,7 @@ func getInt64(m exif.FileMetadata, k string) *uint64 {
 		uv := uint64(v)
 		return &uv
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		logrus.Warnf("error while extracting key %v as int from %v: %v", k, m.File, err)
+		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as int: %v", k, err)
 	}
 	return nil
 }
@@ -81,7 +82,7 @@ func getFloat64(m exif.FileMetadata, k string) *float64 {
 	case err == nil:
 		return &v
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		logrus.Warnf("error while extracting key %v as float from %v: %v", k, m.File, err)
+		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as float: %v", k, err)
 	}
 	return nil
 }
@@ -89,7 +90,7 @@ func getFloat64(m exif.FileMetadata, k string) *float64 {
 func getDate(m exif.FileMetadata, k string) *uint64 {
 	if strDate := getString(m, k); strDate != nil {
 		if d, err := time.Parse(srcDateFormat, *strDate); err != nil {
-			logrus.Warnf("error while parsing date from field %v (%v) from %v: %v", k, *strDate, m.File, err)
+			log.Warn().Str(logFileIdentifier, m.File).Msgf("error while parsing date from field %v (%v): %v", k, *strDate, err)
 			return &defaultDate
 		} else {
 			d2 := uint64(d.Unix() * 1000)
@@ -103,7 +104,7 @@ func getGPS(m exif.FileMetadata, k string) *string {
 	if rawGPS := getString(m, k); rawGPS != nil {
 		lat, long, err := convertGPSCoordinates(*rawGPS)
 		if err != nil {
-			logrus.Warnf("error while parsing GPS coordinates from field %v (%v) from %v: %v", k, *rawGPS, m.File, err)
+			log.Warn().Str(logFileIdentifier, m.File).Msgf("error while parsing GPS coordinates from field %v (%v): %v", k, *rawGPS, err)
 			return nil
 		}
 		gps := fmt.Sprintf("%v,%v", lat, long)

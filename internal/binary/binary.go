@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/barasher/picdexer/conf"
 	"github.com/rs/zerolog/log"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -56,7 +55,7 @@ func (s *Storer) StoreFolder(ctx context.Context, f string, o string) {
 		})
 		close(c)
 		if err != nil {
-			logrus.Errorf("error while browsing folder %v: %w", f, err)
+			log.Error().Msgf("error while browsing folder %v: %v", f, err)
 		}
 	}()
 	s.StoreChannel(ctx, c, o)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/barasher/picdexer/conf"
+	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,7 +19,6 @@ import (
 	"time"
 
 	exif "github.com/barasher/go-exiftool"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -90,7 +90,7 @@ func WithConfiguration(c conf.Conf) func(*Indexer) error {
 func (idxer *Indexer) Close() error {
 	if idxer.exif != nil {
 		if err := idxer.exif.Close(); err != nil {
-			logrus.Errorf("error while closing exiftool: %v", err)
+			log.Error().Msgf("error while closing exiftool: %v", err)
 		}
 	}
 	return nil
@@ -117,12 +117,12 @@ func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.W
 		}
 
 		if err := jsonEncoder.Encode(task.header); err != nil {
-			logrus.Errorf("error while encoding header: %v", err)
+			log.Error().Msgf("error while encoding header: %v", err)
 			cancel()
 			return
 		}
 		if err := jsonEncoder.Encode(task.pic); err != nil {
-			logrus.Errorf("error while encoding json: %v", err)
+			log.Error().Msgf("error while encoding json: %v", err)
 			cancel()
 			return
 		}
@@ -146,14 +146,14 @@ func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelF
 
 				pic, err := idxer.convert(ctx, task.path, task.info)
 				if err != nil {
-					logrus.Errorf("%v: %v", task.path, err)
+					log.Error().Str(logFileIdentifier, task.path).Msgf("conversion error: %v", err)
 					cancel()
 					return
 				} else {
 					if pic.MimeType != nil && strings.HasPrefix(*pic.MimeType, imageMimeType) {
 						header, err := getBulkEntryHeader(task.path, pic)
 						if err != nil {
-							logrus.Errorf("error while generating header: %v", err)
+							log.Error().Str(logFileIdentifier, task.path).Msgf("error while generating header: %v", err)
 							cancel()
 							return
 						}
@@ -201,7 +201,7 @@ func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 }
 
 func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) (Model, error) {
-	logrus.Infof("%v", f)
+	log.Info().Str(logFileIdentifier, f).Msg("Converting...")
 	pic := Model{}
 
 	metas := idxer.exif.ExtractMetadata(f)
