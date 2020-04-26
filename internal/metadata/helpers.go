@@ -1,7 +1,6 @@
 package metadata
 
 import (
-	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"github.com/rs/zerolog/log"
@@ -21,7 +20,6 @@ import (
 const (
 	indexNameNoDate   = "picdexerNoDate"
 	indexName         = "picdexer"
-	importIdCtxKey    = "impID"
 	logFileIdentifier = "file"
 )
 
@@ -168,19 +166,4 @@ func getBulkEntryHeader(path string, m Model) (bulkEntryHeader, error) {
 		h.Index.Index = indexName
 	}
 	return h, nil
-}
-
-func BuildContext(impID string) context.Context {
-	id := impID
-	if id == "" {
-		id = strconv.FormatInt(time.Now().UnixNano(), 10)
-	}
-	return context.WithValue(context.Background(), importIdCtxKey, id)
-}
-
-func getImportID(ctx context.Context) string {
-	if v := ctx.Value(importIdCtxKey); v != nil {
-		return v.(string)
-	}
-	return ""
 }

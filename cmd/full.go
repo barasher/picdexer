@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,7 @@ func init() {
 	// full
 	fullCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	fullCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File containing pictures")
+	metaSimuCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	fullCmd.MarkFlagRequired("conf")
 	fullCmd.MarkFlagRequired("dir")
 
@@ -25,8 +27,9 @@ func init() {
 }
 
 func full(cmd *cobra.Command, args []string) error {
+	ctx := common.NewContext(importID)
 	log.Info().Msg("Indexing metadata...")
-	if err :=  extract(true); err != nil {
+	if err :=  extract(ctx, true); err != nil {
 		return fmt.Errorf("Error while indexing metadata: %w", err)
 	}
 	log.Info().Msg("Storing pictures...")

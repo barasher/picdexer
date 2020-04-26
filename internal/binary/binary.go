@@ -100,35 +100,3 @@ func (s *Storer) storeChannel(ctx context.Context, threadId int, c <-chan string
 
 	}
 }
-
-/*func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) error {
-	var dir = o
-	var err error
-	if o == "" {
-		dir, err = ioutil.TempDir(os.TempDir(), "picdexer")
-		if err != nil {
-			return fmt.Errorf("error while creating temporary folder: %w", err)
-		}
-		defer os.RemoveAll(dir)
-		log.Debug().Msgf("Resized pictures temporary folder: %v", dir)
-	}
-
-	for cur := range c {
-
-		log.Debug().Str(fileIdentifier, cur).Msg("Resizing...")
-		outBin, outKey, err := s.resizer.resize(ctx, cur, dir)
-		if err != nil {
-			log.Error().Str(fileIdentifier, cur).Msgf("Error while resizing: %v", err)
-			continue
-		}
-
-		log.Debug().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msg("Pushing...")
-		err = s.pusher.push(outBin, outKey)
-		if err != nil {
-			log.Error().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msgf("Error while pushing: %v", err)
-			continue
-		}
-
-	}
-	return nil
-}*/

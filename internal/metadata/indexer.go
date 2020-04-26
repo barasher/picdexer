@@ -200,7 +200,7 @@ func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) 
 	}
 	meta := metas[0]
 
-	pic.ImportID = getImportID(ctx)
+	pic.ImportID = common.GetImportID(ctx)
 	pic.Aperture = getFloat64(meta, apertureKey)
 	pic.ISO = getInt64(meta, isoKey)
 	pic.ShutterSpeed = getString(meta, shutterKey)

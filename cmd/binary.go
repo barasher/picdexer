@@ -36,7 +36,7 @@ func init() {
 	binSimuCmd.MarkFlagRequired("dir")
 	binSimuCmd.MarkFlagRequired("out")
 	binCmd.AddCommand(binSimuCmd)
-
+	
 	// push
 	binPushCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	binPushCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File containing pictures")

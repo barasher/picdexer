@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	exif "github.com/barasher/go-exiftool"
 	"github.com/barasher/picdexer/conf"
+	"github.com/barasher/picdexer/internal/common"
 	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/spf13/cobra"
 	"os"
@@ -52,13 +54,14 @@ func init() {
 	// index
 	metaIndexCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	metaIndexCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
+	metaSimuCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	metaIndexCmd.MarkFlagRequired("dir")
 	metaCmd.AddCommand(metaIndexCmd)
 
 	rootCmd.AddCommand(metaCmd)
 }
 
-func extract(push bool) error {
+func extract(ctx context.Context, push bool) error {
 	opts := []func(*metadata.Indexer) error{}
 	opts = append(opts, metadata.Input(input))
 	if confFile != "" {
@@ -69,7 +72,6 @@ func extract(push bool) error {
 		opts = append(opts, metadata.WithConfiguration(conf))
 	}
 
-	ctx := metadata.BuildContext(importID)
 	idxer, err := metadata.NewIndexer(opts...)
 	if err != nil {
 		return fmt.Errorf("error while initializing metadata: %w", err)
@@ -93,11 +95,13 @@ func extract(push bool) error {
 }
 
 func simulateMeta(cmd *cobra.Command, args []string) error {
-	return extract(false)
+	ctx := common.NewContext(importID)
+	return extract(ctx, false)
 }
 
 func indexMeta(cmd *cobra.Command, args []string) error {
-	return extract(true)
+	ctx := common.NewContext(importID)
+	return extract(ctx, true)
 }
 
 func displayMeta(cmd *cobra.Command, args []string) error {
