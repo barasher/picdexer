@@ -181,11 +181,11 @@ func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 			info: info,
 		}
 	})
+	close(consumeChan)
 	if err != nil {
 		cancel()
 		return fmt.Errorf("error while browsing directory: %v", err)
 	}
-	close(consumeChan)
 	wg.Wait()
 	return nil
 }
@@ -231,7 +231,7 @@ func (idxer *Indexer) Push(ctx context.Context, buffer *bytes.Buffer) error {
 	u.Path = path.Join(u.Path, bulkSuffix)
 
 	httpClient := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 	resp, err := httpClient.Post(u.String(), ndJsonMimeType, buffer)
 	if err != nil {

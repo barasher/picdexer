@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -25,7 +25,7 @@ var (
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Error().Msgf("%v", err)
 		os.Exit(1)
 	}
 }
