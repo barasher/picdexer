@@ -15,7 +15,7 @@ const (
 var (
 	rootCmd = &cobra.Command{
 		Use:   "picdexer",
-		Short: "Picture indexer",
+		Short: "Picture metadata",
 	}
 	input    string
 	output   string

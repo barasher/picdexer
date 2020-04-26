@@ -5,7 +5,7 @@ import (
 	"fmt"
 	exif "github.com/barasher/go-exiftool"
 	"github.com/barasher/picdexer/conf"
-	"github.com/barasher/picdexer/internal/indexer"
+	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -59,20 +59,20 @@ func init() {
 }
 
 func extract(push bool) error {
-	opts := []func(*indexer.Indexer) error{}
-	opts = append(opts, indexer.Input(input))
+	opts := []func(*metadata.Indexer) error{}
+	opts = append(opts, metadata.Input(input))
 	if confFile != "" {
 		conf, err := conf.LoadConf(confFile)
 		if err != nil {
 			return err
 		}
-		opts = append(opts, indexer.WithConfiguration(conf))
+		opts = append(opts, metadata.WithConfiguration(conf))
 	}
 
-	ctx := indexer.BuildContext(importID)
-	idxer, err := indexer.NewIndexer(opts...)
+	ctx := metadata.BuildContext(importID)
+	idxer, err := metadata.NewIndexer(opts...)
 	if err != nil {
-		return fmt.Errorf("error while initializing indexer: %w", err)
+		return fmt.Errorf("error while initializing metadata: %w", err)
 	}
 	defer idxer.Close()
 
