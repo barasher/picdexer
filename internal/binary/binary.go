@@ -11,14 +11,34 @@ import (
 	"sync"
 )
 
-const fileIdentifier = "file"
-const resizedFileIdentifier = "resizedFile"
-const keyIdentifier = "key"
+const (
+	fileIdentifier             = "file"
+	resizedFileIdentifier      = "resizedFile"
+	keyIdentifier              = "key"
+	defaultResizingThreadCount = 4
+	defaultToResizeChannelSize = defaultResizingThreadCount
+)
 
 type Storer struct {
 	conf    conf.BinaryConf
 	resizer resizerInterface
 	pusher  pusherInterface
+}
+
+func (s *Storer) resizingThreadCount() int {
+	n := s.conf.ResizingThreadCount
+	if n <1{
+		n = defaultResizingThreadCount
+	}
+	return n
+}
+
+func (s *Storer) toResizeChannelSize() int {
+	n := s.conf.ToResizeChannelSize
+	if n <1 {
+		n = defaultToResizeChannelSize
+	}
+	return n
 }
 
 func NewStorer(c conf.BinaryConf, push bool) (*Storer, error) {
@@ -42,7 +62,7 @@ func NewStorer(c conf.BinaryConf, push bool) (*Storer, error) {
 }
 
 func (s *Storer) StoreFolder(ctx context.Context, f string, o string) {
-	c := make(chan string, s.conf.Threads*2)
+	c := make(chan string, s.toResizeChannelSize())
 	go func() {
 		err := common.BrowseImages(f, func(path string, info os.FileInfo) {
 			c <- path
@@ -57,10 +77,12 @@ func (s *Storer) StoreFolder(ctx context.Context, f string, o string) {
 
 func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) {
 	wg := &sync.WaitGroup{}
-	wg.Add(s.conf.Threads)
-	for i := 0; i < s.conf.Threads; i++ {
-		cur := i
-		go s.storeChannel(ctx, cur, c, o, wg)
+	threadCount := s.resizingThreadCount()
+	wg.Add(threadCount)
+	for i := 0; i < threadCount; i++ {
+		go func(id int) {
+			s.storeChannel(ctx, id, c, o, wg)
+		}(i)
 	}
 	wg.Wait()
 }

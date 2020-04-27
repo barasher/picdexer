@@ -87,3 +87,43 @@ func TestStoreFolder(t *testing.T) {
 	}
 
 }
+
+func TestResizingThreadCount(t *testing.T) {
+	var tcs = []struct {
+		tcID     string
+		inConfValue      int
+		expValue int
+	}{
+		{"-1", -1, defaultResizingThreadCount},
+		{"0", 0, defaultResizingThreadCount},
+		{"5", 5,5},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.tcID, func(t *testing.T) {
+			c := conf.BinaryConf{ResizingThreadCount:tc.inConfValue}
+			s := Storer{conf: c}
+			assert.Equal(t, tc.expValue, s.resizingThreadCount())
+		})
+	}
+}
+
+func TestToResizeChannelSize(t *testing.T) {
+	var tcs = []struct {
+		tcID     string
+		inConfValue      int
+		expValue int
+	}{
+		{"-1", -1, defaultToResizeChannelSize},
+		{"0", 0, defaultToResizeChannelSize},
+		{"5", 5,5},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.tcID, func(t *testing.T) {
+			c := conf.BinaryConf{ToResizeChannelSize:tc.inConfValue}
+			s := Storer{conf: c}
+			assert.Equal(t, tc.expValue, s.toResizeChannelSize())
+		})
+	}
+}

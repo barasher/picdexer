@@ -13,16 +13,17 @@ type Conf struct {
 }
 
 type ElasticsearchConf struct {
-	Url string `json:"url"`
-	ExtractionThreadCount int `json:"extractionThreadCount"`
-	ToExtractChannelSize int `json:"toExtractChannelSize"`
+	Url                   string `json:"url"`
+	ExtractionThreadCount int    `json:"extractionThreadCount"`
+	ToExtractChannelSize  int    `json:"toExtractChannelSize"`
 }
 
 type BinaryConf struct {
-	Url     string `json:"url"`
-	Height  uint   `json:"height"`
-	Width   uint   `json:"width"`
-	Threads int    `json:"threads"`
+	Url                 string `json:"url"`
+	Height              uint   `json:"height"`
+	Width               uint   `json:"width"`
+	ResizingThreadCount int    `json:"resizingThreadCount"`
+	ToResizeChannelSize int    `json:"toResizeChannelSize"`
 }
 
 func LoadConf(f string) (Conf, error) {

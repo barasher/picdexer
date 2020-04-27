@@ -123,3 +123,43 @@ func TestPushPostFailure(t *testing.T) {
 	err = idxer.Push(context.Background(), buf)
 	assert.NotNil(t, err)
 }
+
+func TestExtractionThreadCount(t *testing.T) {
+	var tcs = []struct {
+		tcID     string
+		inConfValue      int
+		expValue int
+	}{
+		{"-1", -1, defaultExtrationThreadCount},
+		{"0", 0, defaultExtrationThreadCount},
+		{"5", 5,5},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.tcID, func(t *testing.T) {
+			c := conf.ElasticsearchConf{ExtractionThreadCount:tc.inConfValue}
+			i := Indexer{conf: c}
+			assert.Equal(t, tc.expValue, i.extractionThreadCount())
+		})
+	}
+}
+
+func TestToExtractChannelSize(t *testing.T) {
+	var tcs = []struct {
+		tcID     string
+		inConfValue      int
+		expValue int
+	}{
+		{"-1", -1, defaultToExtractChannelSize},
+		{"0", 0, defaultToExtractChannelSize},
+		{"5", 5,5},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.tcID, func(t *testing.T) {
+			c := conf.ElasticsearchConf{ToExtractChannelSize:tc.inConfValue}
+			i := Indexer{conf: c}
+			assert.Equal(t, tc.expValue, i.toExtractChannelSize())
+		})
+	}
+}

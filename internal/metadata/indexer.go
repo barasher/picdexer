@@ -57,7 +57,7 @@ type bulkEntryHeader struct {
 
 func (idxer *Indexer) extractionThreadCount() int {
 	n := idxer.conf.ExtractionThreadCount
-	if n == 0 {
+	if n <1 {
 		n = defaultExtrationThreadCount
 	}
 	return n
@@ -65,7 +65,7 @@ func (idxer *Indexer) extractionThreadCount() int {
 
 func (idxer *Indexer) toExtractChannelSize() int {
 	n := idxer.conf.ToExtractChannelSize
-	if n == 0 {
+	if n <1  {
 		n = defaultToExtractChannelSize
 	}
 	return n
@@ -121,7 +121,7 @@ type printTask struct {
 	pic    Model
 }
 
-func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, printChan chan printTask, writer io.Writer) {
+func (idxer *Indexer) dump(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, printChan chan printTask, writer io.Writer) {
 	defer globalWg.Done()
 	jsonEncoder := json.NewEncoder(writer)
 	for task := range printChan {
@@ -144,7 +144,7 @@ func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.W
 	}
 }
 
-func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, toExtractChan chan extractTask, toDumpChan chan printTask) {
+func (idxer *Indexer) startConverters(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, toExtractChan chan extractTask, toDumpChan chan printTask) {
 	defer globalWg.Done()
 	threadCount := idxer.extractionThreadCount()
 	var consumeWg sync.WaitGroup
@@ -188,8 +188,8 @@ func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go startPrint(ctx, cancel, &wg, toDumpChan, writer)
-	go idxer.startConsumers(ctx, cancel, &wg, toExtractChan, toDumpChan)
+	go idxer.dump(ctx, cancel, &wg, toDumpChan, writer)
+	go idxer.startConverters(ctx, cancel, &wg, toExtractChan, toDumpChan)
 
 	err := common.BrowseImages(idxer.input, func(path string, info os.FileInfo) {
 		toExtractChan <- extractTask{
