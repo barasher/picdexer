@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -38,13 +37,15 @@ const (
 
 	ndJsonMimeType = "application/x-ndjson"
 	bulkSuffix     = "_bulk"
+
+	defaultExtrationThreadCount = 4
+	defaultToExtractChannelSize = 50
 )
 
 type Indexer struct {
-	conf        conf.Conf
+	conf        conf.ElasticsearchConf
 	input       string
 	exif        *exif.Exiftool
-	threadCount int // TODO rendre configurable
 }
 
 type bulkEntryHeader struct {
@@ -52,6 +53,22 @@ type bulkEntryHeader struct {
 		Index string `json:"_index"`
 		ID    string `json:"_id"`
 	} `json:"index"`
+}
+
+func (idxer *Indexer) extractionThreadCount() int {
+	n := idxer.conf.ExtractionThreadCount
+	if n == 0 {
+		n = defaultExtrationThreadCount
+	}
+	return n
+}
+
+func (idxer *Indexer) toExtractChannelSize() int {
+	n := idxer.conf.ToExtractChannelSize
+	if n == 0 {
+		n = defaultToExtractChannelSize
+	}
+	return n
 }
 
 func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
@@ -67,7 +84,6 @@ func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
 		return idxer, fmt.Errorf("error while initializing metadata extractor: %v", err)
 	}
 	idxer.exif = et
-	idxer.threadCount = runtime.GOMAXPROCS(runtime.NumCPU())
 
 	return idxer, nil
 }
@@ -79,7 +95,7 @@ func Input(input string) func(*Indexer) error {
 	}
 }
 
-func WithConfiguration(c conf.Conf) func(*Indexer) error {
+func WithConfiguration(c conf.ElasticsearchConf) func(*Indexer) error {
 	return func(idxer *Indexer) error {
 		idxer.conf = c
 		return nil
@@ -128,15 +144,15 @@ func startPrint(ctx context.Context, cancel context.CancelFunc, globalWg *sync.W
 	}
 }
 
-func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, consumeChan chan extractTask, printChan chan printTask) {
+func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelFunc, globalWg *sync.WaitGroup, toExtractChan chan extractTask, toDumpChan chan printTask) {
 	defer globalWg.Done()
-	threadCount := idxer.threadCount
+	threadCount := idxer.extractionThreadCount()
 	var consumeWg sync.WaitGroup
 	consumeWg.Add(threadCount)
 	for i := 0; i < threadCount; i++ {
 		go func(id int) {
 			defer consumeWg.Done()
-			for task := range consumeChan {
+			for task := range toExtractChan {
 				select {
 				case <-ctx.Done():
 					return
@@ -155,33 +171,33 @@ func (idxer *Indexer) startConsumers(ctx context.Context, cancel context.CancelF
 						cancel()
 						return
 					}
-					printChan <- printTask{header: header, pic: pic}
+					toDumpChan <- printTask{header: header, pic: pic}
 				}
 			}
 		}(i)
 	}
 	consumeWg.Wait()
-	close(printChan)
+	close(toDumpChan)
 }
 
 func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 	ctx, cancel := context.WithCancel(ctx)
 
-	consumeChan := make(chan extractTask, idxer.threadCount*3)
-	printChan := make(chan printTask, idxer.threadCount)
+	toExtractChan := make(chan extractTask, idxer.toExtractChannelSize())
+	toDumpChan := make(chan printTask, idxer.extractionThreadCount())
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go startPrint(ctx, cancel, &wg, printChan, writer)
-	go idxer.startConsumers(ctx, cancel, &wg, consumeChan, printChan)
+	go startPrint(ctx, cancel, &wg, toDumpChan, writer)
+	go idxer.startConsumers(ctx, cancel, &wg, toExtractChan, toDumpChan)
 
 	err := common.BrowseImages(idxer.input, func(path string, info os.FileInfo) {
-		consumeChan <- extractTask{
+		toExtractChan <- extractTask{
 			path: path,
 			info: info,
 		}
 	})
-	close(consumeChan)
+	close(toExtractChan)
 	if err != nil {
 		cancel()
 		return fmt.Errorf("error while browsing directory: %v", err)
@@ -224,9 +240,9 @@ func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) 
 }
 
 func (idxer *Indexer) Push(ctx context.Context, buffer *bytes.Buffer) error {
-	u, err := url.Parse(idxer.conf.Elasticsearch.Url)
+	u, err := url.Parse(idxer.conf.Url)
 	if err != nil {
-		return fmt.Errorf("error while parsing elasticsearch url (%v): %w", idxer.conf.Elasticsearch.Url, err)
+		return fmt.Errorf("error while parsing elasticsearch url (%v): %w", idxer.conf.Url, err)
 	}
 	u.Path = path.Join(u.Path, bulkSuffix)
 

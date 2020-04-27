@@ -69,7 +69,7 @@ func extract(ctx context.Context, push bool) error {
 		if err != nil {
 			return err
 		}
-		opts = append(opts, metadata.WithConfiguration(conf))
+		opts = append(opts, metadata.WithConfiguration(conf.Elasticsearch))
 	}
 
 	idxer, err := metadata.NewIndexer(opts...)

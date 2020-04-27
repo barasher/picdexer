@@ -87,7 +87,7 @@ func TestPushNominal(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := conf.Conf{Elasticsearch: conf.ElasticsearchConf{Url: server.URL}}
+	c := conf.ElasticsearchConf{Url: server.URL}
 	idxer, err := NewIndexer(WithConfiguration(c))
 	assert.Nil(t, err)
 	defer idxer.Close()
@@ -104,7 +104,7 @@ func TestPushWrongStatusCode(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := conf.Conf{Elasticsearch: conf.ElasticsearchConf{Url: server.URL}}
+	c := conf.ElasticsearchConf{Url: server.URL}
 	idxer, err := NewIndexer(WithConfiguration(c))
 	assert.Nil(t, err)
 	defer idxer.Close()

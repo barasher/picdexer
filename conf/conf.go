@@ -14,6 +14,8 @@ type Conf struct {
 
 type ElasticsearchConf struct {
 	Url string `json:"url"`
+	ExtractionThreadCount int `json:"extractionThreadCount"`
+	ToExtractChannelSize int `json:"toExtractChannelSize"`
 }
 
 type BinaryConf struct {
