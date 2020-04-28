@@ -7,8 +7,11 @@ before_install:
   - sudo apt-get -qq update
 
 install:
-  - sudo apt-get -q -y install libmagickwand-dev libimage-exiftool-perl build-essential pkg-config --no-install-recommends
-  - sudo apt-get -q -y install libjpeg-dev libpng-dev libtiff-dev libgif-dev libx11-dev fontconfig fontconfig-config libfontconfig1-dev ghostscript gsfonts gsfonts-x11 libfreetype6-dev --no-install-recommends
+  - sudo apt-get -q -y install libmagickwand-dev libimage-exiftool-perl
+  - pkg-config --cflags --libs MagickWand
+  - identify -version
+#  - build-essential pkg-config --no-install-recommends
+#  - sudo apt-get -q -y install libjpeg-dev libpng-dev libtiff-dev libgif-dev libx11-dev fontconfig fontconfig-config libfontconfig1-dev ghostscript gsfonts gsfonts-x11 libfreetype6-dev --no-install-recommends
   - go get -v
 
 script:
