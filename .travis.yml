@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - 1.x
+
+before_install:
+  - sudo apt-get -qq update
+
+install:
+  - sudo apt-get -qq -y install libmagickwand-dev libimage-exiftool-perl
+  - go get -v
+
+script:
+  - go test -coverprofile=coverage.txt -covermode=atomic ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
