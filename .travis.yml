@@ -7,15 +7,7 @@ before_install:
   - sudo apt-get -qq update
 
 install:
-  - sudo apt-get -q -y install libimage-exiftool-perl
-  - sudo apt-get -q -y install build-essential pkg-config --no-install-recommends
-  - sudo apt-get -q -y install libjpeg-dev libpng-dev libtiff-dev libgif-dev libx11-dev --no-install-recommends
-  - wget https://github.com/ImageMagick/ImageMagick6/archive/6.9.7-4.tar.gz
-  - tar xvzf 6.9.7-4.tar.gz
-  - cd ImageMagick*
-  - ./configure --without-magick-plus-plus --without-perl --disable-openmp --with-gvc=no --disable-docs
-  - make -j$(nproc) && make install
-  - ldconfig /usr/local/lib
+  - sudo apt-get -q -y install libimage-exiftool-perl imagemagick
   - go get -v
 
 script:
