@@ -9,5 +9,4 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.3.0
-	gopkg.in/gographics/imagick.v2 v2.6.0
 )

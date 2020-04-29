@@ -6,18 +6,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/barasher/picdexer/conf"
-	"gopkg.in/gographics/imagick.v2/imagick"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
 type resizerInterface interface {
 	resize(ctx context.Context, f string, o string) (string, string, error)
-}
-
-type resizer struct {
-	dimensions string
 }
 
 func getOutputFilename(file string) (string, error) {
@@ -34,18 +30,28 @@ func getOutputFilename(file string) (string, error) {
 	return o, nil
 }
 
+type resizer struct {
+	dimensions string
+}
+
+
 func (r resizer) resize(ctx context.Context, f string, d string) (string, string, error) {
 	outFilename, err := getOutputFilename(f)
 	if err != nil {
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
 	}
 	outPath := filepath.Join(d, outFilename)
-	_, err = imagick.ConvertImageCommand([]string{"convert", f, "-resize", r.dimensions, outPath})
-	if err != nil {
-		return "", "", fmt.Errorf("error while converting image %v: %w", f, err)
+	args := []string{f, "-resize", r.dimensions, outPath}
+	cmd := exec.Command("convert", args...)
+	b, _ := cmd.CombinedOutput()
+	if len(b) > 0 {
+		return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
 	}
+	fmt.Printf("-%s\n", string(b))
 	return outPath, outFilename, nil
 }
+
+
 
 func NewResizer(c conf.BinaryConf) resizer {
 	return resizer{dimensions: fmt.Sprintf("%vx%v", c.Width, c.Height)}
@@ -65,3 +71,4 @@ func (r nopResizer) resize(ctx context.Context, f string, d string) (string, str
 func NewNopResizer() nopResizer {
 	return nopResizer{}
 }
+
