@@ -50,7 +50,7 @@ func NewStorer(c conf.BinaryConf, push bool) (*Storer, error) {
 	case c.Width == 0 && c.Height == 0:
 		s.resizer = NewNopResizer()
 	default:
-		return s, fmt.Errorf("wrong width (%w) & height (%v) couple", c.Width, c.Height)
+		return s, fmt.Errorf("wrong width (%v) & height (%v) couple", c.Width, c.Height)
 	}
 
 	s.pusher = NewNopPusher()
@@ -97,7 +97,7 @@ func (s *Storer) storeChannel(ctx context.Context, threadId int, c <-chan string
 	if o == "" {
 		dir, err = ioutil.TempDir(os.TempDir(), "picdexer")
 		if err != nil {
-			subLog.Error().Msgf("error while creating temporary folder: %w", err)
+			subLog.Error().Msgf("error while creating temporary folder: %v", err)
 			return
 		}
 		defer os.RemoveAll(dir)
