@@ -1,0 +1,100 @@
+{
+  "mappings": {
+    "properties": {
+      "Aperture": {
+        "type": "long"
+      },
+      "CameraModel": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "FileSize": {
+        "type": "long"
+      },
+      "GPS": {
+        "type": "geo_point"
+      },
+      "Height": {
+        "type": "long"
+      },
+      "Keywords": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "LensModel": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "MimeType": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "ShutterSpeed": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Width": {
+        "type": "long"
+      },
+      "Date": {
+        "type": "date"
+      },
+      "FileName": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Folder": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "ImportID": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "ISO": {
+        "type": "long"
+      }
+
+    }
+  }
+}

@@ -19,7 +19,7 @@ func init() {
 	// full
 	fullCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	fullCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File containing pictures")
-	metaSimuCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
+	fullCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	fullCmd.MarkFlagRequired("conf")
 	fullCmd.MarkFlagRequired("dir")
 

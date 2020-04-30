@@ -54,8 +54,9 @@ func init() {
 	// index
 	metaIndexCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	metaIndexCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
-	metaSimuCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
+	metaIndexCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	metaIndexCmd.MarkFlagRequired("dir")
+	metaIndexCmd.MarkFlagRequired("conf")
 	metaCmd.AddCommand(metaIndexCmd)
 
 	rootCmd.AddCommand(metaCmd)
