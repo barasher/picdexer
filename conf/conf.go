@@ -10,6 +10,7 @@ type Conf struct {
 	LogLevel      string
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
 	Binary        BinaryConf        `json:"binary"`
+	Kibana        KibanaConf        `json:"kibana"`
 }
 
 type ElasticsearchConf struct {
@@ -24,6 +25,10 @@ type BinaryConf struct {
 	Width               uint   `json:"width"`
 	ResizingThreadCount int    `json:"resizingThreadCount"`
 	ToResizeChannelSize int    `json:"toResizeChannelSize"`
+}
+
+type KibanaConf struct {
+	Url string `json:"url"`
 }
 
 func LoadConf(f string) (Conf, error) {

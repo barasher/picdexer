@@ -80,16 +80,16 @@ func extract(ctx context.Context, push bool) error {
 	defer idxer.Close()
 
 	if push {
-		if err := idxer.Dump(ctx, os.Stdout); err != nil {
-			return fmt.Errorf("error while dumping: %w", err)
-		}
-	} else {
 		var buffer bytes.Buffer
 		if err := idxer.Dump(ctx, &buffer); err != nil {
 			return fmt.Errorf("error while dumping: %v", err)
 		}
 		if err := idxer.Push(ctx, &buffer); err != nil {
 			return fmt.Errorf("error while pushing: %v", err)
+		}
+	} else {
+		if err := idxer.Dump(ctx, os.Stdout); err != nil {
+			return fmt.Errorf("error while dumping: %w", err)
 		}
 	}
 	return nil

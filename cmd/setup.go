@@ -35,8 +35,11 @@ func configure(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Setup initialization error: %w", err)
 	}
 
-	if err := s.SetupElasticsearch() ; err != nil {
+	if err := s.SetupElasticsearch(); err != nil {
 		return fmt.Errorf("error while configuring Elasticsearch: %w", err)
+	}
+	if err := s.SetupKibana(); err != nil {
+		return fmt.Errorf("error while configuring Kibana: %w", err)
 	}
 
 	return nil
