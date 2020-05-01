@@ -9,7 +9,6 @@ before_install:
 install:
   - sudo apt-get -q -y install libimage-exiftool-perl imagemagick
   - go install -v github.com/rakyll/statik
-  - statik -help
   - go get -v
 
 script:
