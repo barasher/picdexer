@@ -3,13 +3,12 @@ package setup
 import (
 	"fmt"
 	"github.com/barasher/picdexer/conf"
-	"github.com/rakyll/statik/fs"
 	_ "github.com/barasher/picdexer/internal/setup/statik"
+	"github.com/rakyll/statik/fs"
 	"net/http"
 )
 
 const mappingPath = "/picdexer"
-
 
 type ESManager struct {
 	conf conf.ElasticsearchConf
@@ -25,33 +24,48 @@ func NewESManager(c conf.ElasticsearchConf) (*ESManager, error) {
 	return m, nil
 }
 
-func (s *ESManager) simpleMappingQuery(client *http.Client, method string, expStatus int) error {
+func (s *ESManager) simpleMappingQuery(client *http.Client, method string) (int, error) {
 	req, err := http.NewRequest(method, s.conf.Url, nil)
 	if err != nil {
-		return fmt.Errorf("error while creating http request: %w", err)
+		return -1, fmt.Errorf("error while creating http request: %w", err)
 	}
 	req.URL.Path = mappingPath
 	resp, err := client.Do(req)
 	if err != nil {
-		return  fmt.Errorf("error while executing http request: %w", err)
+		return -1, fmt.Errorf("error while executing http request: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != expStatus {
-		if err := logReader(resp.Body); err != nil {
-			return  fmt.Errorf("error while logging response body: %s", err)
-		}
-		return  fmt.Errorf("unexpected status code (%v), body logged", resp.StatusCode)
+	if err := logReader(resp.Body); err != nil {
+		return -1, fmt.Errorf("error while logging response body: %s", err)
 	}
-	return  nil
+
+	return resp.StatusCode, nil
 }
 
 func (s *ESManager) MappingAlreadyExist(client *http.Client) (bool, error) {
-	err :=  s.simpleMappingQuery(client, http.MethodGet, http.StatusOK)
-	return err == nil, err
+	status, err := s.simpleMappingQuery(client, http.MethodGet)
+	switch  {
+	case err != nil:
+		return false, err
+	case status == http.StatusOK:
+		return true, nil
+	case status == http.StatusNotFound:
+		return false, nil
+	default:
+		return true, fmt.Errorf("unexpected status code (%v)", status)
+	}
 }
 
 func (s *ESManager) DeleteMapping(client *http.Client) error {
-	return  s.simpleMappingQuery(client, http.MethodDelete, http.StatusOK)
+	status, err :=  s.simpleMappingQuery(client, http.MethodDelete)
+	switch  {
+	case err != nil:
+		return err
+	case status == http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf("unexpected status code (%v)", status)
+	}
 }
 
 func (s *ESManager) PutMapping(client *http.Client) error {

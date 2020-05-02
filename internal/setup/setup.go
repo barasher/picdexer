@@ -34,7 +34,7 @@ func logReader(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("error while reading response body: %w", err)
 	}
-	log.Error().Msgf("Response body: %s", string(b))
+	log.Debug().Msgf("Response body: %s", string(b))
 	return nil
 }
 
