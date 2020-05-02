@@ -17,9 +17,25 @@ import (
 	"time"
 )
 
+
+type ESManagerInterface interface {
+	MappingAlreadyExist(client *http.Client) (bool, error)
+	DeleteMapping(client *http.Client) error
+	PutMapping(client *http.Client) error
+}
+
 type Setup struct {
 	conf conf.Conf
 	fs   http.FileSystem
+}
+
+func logReader(r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("error while reading response body: %w", err)
+	}
+	log.Error().Msgf("Response body: %s", string(b))
+	return nil
 }
 
 func NewSetup(c conf.Conf) (*Setup, error) {
@@ -31,37 +47,34 @@ func NewSetup(c conf.Conf) (*Setup, error) {
 	return s, nil
 }
 
-func (s *Setup) SetupElasticsearch() error {
-	log.Info().Msgf("Pushing Elasticsearch mapping...")
-	r, err := s.fs.Open("/mapping.json")
-	if err != nil {
-		return fmt.Errorf("error while reading mapping: %w", err)
-	}
-	defer r.Close()
-
-	req, err := http.NewRequest(http.MethodPut, s.conf.Elasticsearch.Url, r)
-	req.URL.Path = "/picdexer"
-	req.Header.Add("Content-Type", "application/json")
+func (s *Setup) setupElasticsearch(m ESManagerInterface) error {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-	resp, err := client.Do(req)
+	mappingExists, err := m.MappingAlreadyExist(&client)
 	if err != nil {
+		return fmt.Errorf("error while checking if mapping already exists: %w", err)
+	}
+	if mappingExists {
+		log.Info().Msgf("Elasticsearch mapping already exists, deleting...")
+		err := m.DeleteMapping(&client)
+		if err != nil {
+			return fmt.Errorf("error while deleting mapping: %w", err)
+		}
+	}
+	if err = m.PutMapping(&client); err != nil {
 		return fmt.Errorf("error while pushing mapping: %w", err)
 	}
-
-	if resp.StatusCode != http.StatusOK {
-		defer req.Body.Close()
-		b, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			return fmt.Errorf("error while reading response body: %w", err)
-		}
-		log.Error().Msgf("Response body: %s", string(b))
-		return fmt.Errorf("wrong status code: %d (body content logged)", resp.StatusCode)
-	}
-
-	log.Info().Msgf("Elasticsearch mapping pushed")
 	return nil
+}
+
+func (s *Setup) SetupElasticsearch() error {
+	log.Info().Msgf("Pushing Elasticsearch mapping...")
+	m, err := NewESManager(s.conf.Elasticsearch)
+	if err != nil {
+		return err
+	}
+	return s.setupElasticsearch(m)
 }
 
 func (s *Setup) SetupKibana() error {
@@ -87,7 +100,13 @@ func (s *Setup) SetupKibana() error {
 	}
 
 	req, err := http.NewRequest(http.MethodPost, s.conf.Kibana.Url, body)
+	if err != nil {
+		return fmt.Errorf("error while creating http request: %w", err)
+	}
 	req.URL.Path = "/api/saved_objects/_import"
+	q := req.URL.Query()
+	q.Add("overwrite", "true")
+	req.URL.RawQuery = q.Encode()
 	req.Header.Add("kbn-xsrf", "true")
 	req.Header.Add("Content-type", fmt.Sprintf("multipart/form-data; boundary=%s", mpart.Boundary()))
 	client := http.Client{
@@ -100,12 +119,10 @@ func (s *Setup) SetupKibana() error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		defer req.Body.Close()
-		b, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			return fmt.Errorf("error while reading response body: %w", err)
+		defer resp.Body.Close()
+		if err := logReader(resp.Body); err != nil {
+			return fmt.Errorf("error while logging response body: %s", err)
 		}
-		log.Error().Msgf("Response body: %s", string(b))
 		return fmt.Errorf("wrong status code: %d (body content logged)", resp.StatusCode)
 	}
 
