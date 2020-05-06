@@ -7,7 +7,7 @@ import (
 )
 
 type Conf struct {
-	LogLevel      string
+	LogLevel      string            `json:"loggingLevel"`
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
 	Binary        BinaryConf        `json:"binary"`
 	Kibana        KibanaConf        `json:"kibana"`
