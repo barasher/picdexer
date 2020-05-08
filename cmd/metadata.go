@@ -46,7 +46,6 @@ func init() {
 	metaCmd.AddCommand(metaSimuCmd)
 
 	// display
-	metaDisplayCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	metaDisplayCmd.Flags().StringVarP(&input, "file", "f", "", "File to extract")
 	metaDisplayCmd.MarkFlagRequired("file")
 	metaCmd.AddCommand(metaDisplayCmd)
