@@ -15,6 +15,14 @@
 - it extracts and index pictures metadata
 - it can store pictures (possibly resized)
 
+## Screenshots
+
+![Statistics](screenshots/statistics.jpg)
+
+- [Statistics dashboard](screenshots/statistics.jpg)
+- [Browse dashboard](screenshots/browse.jpg)
+- [Discover panel](screenshots/discover.jpg)
+
 ## Getting pixdexer
 
 **`picdexer`** is released :
@@ -74,6 +82,8 @@ If the return code is `0`, the command is successfully execute. If any problem h
 **`picdexer`** can setup :
 - `elasticsearch` mapping ([mapping.json](internal/setup/assets/mapping.json))
 - `kibana` index-pattern, visualizations, dashboards ([kibana.ndjson](internal/setup/assets/kibana.ndjson))
+
+**:warning: : the maximum table cell height has to be set tu `0` in `kibana`.** Since there is no official global setting `kibana` REST API, it has to be setup manually. In the `kibana` interface, go to `Management` > `Advanced settings` > `General` > `Maximum table cell height` and set the value to `0`.
 
 The `elasticsearch` and `kibana` part of the configuration file has to be filled.
 
