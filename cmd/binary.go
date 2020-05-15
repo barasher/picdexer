@@ -48,21 +48,24 @@ func init() {
 }
 
 func doBin(push bool) error {
-	var c conf.Conf
-	var err error
 	if confFile != "" {
-		if c, err = conf.LoadConf(confFile); err != nil {
-			return fmt.Errorf("error while loading configuration (%v): %w", confFile, err)
+		c, err := conf.LoadConf(confFile)
+		if err != nil {
+			return err
 		}
+		return doBinConfigured(push, c, input, output)
 	}
+	return fmt.Errorf("No configuration file provided")
+}
 
-	s, err := binary.NewStorer(c.Binary, push)
+func doBinConfigured(push bool, conf conf.Conf, in string, out string) error {
+	s, err := binary.NewStorer(conf.Binary, push)
 	if err != nil {
 		return fmt.Errorf("error while initializing storer: %w", err)
 	}
 
 	ctx := context.Background()
-	s.StoreFolder(ctx, input, output)
+	s.StoreFolder(ctx, in, out)
 
 	return nil
 }

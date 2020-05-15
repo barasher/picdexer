@@ -62,14 +62,20 @@ func init() {
 }
 
 func extract(ctx context.Context, push bool) error {
-	opts := []func(*metadata.Indexer) error{}
-	opts = append(opts, metadata.Input(input))
 	if confFile != "" {
-		conf, err := conf.LoadConf(confFile)
+		c, err := conf.LoadConf(confFile)
 		if err != nil {
 			return err
 		}
-		opts = append(opts, metadata.WithConfiguration(conf.Elasticsearch))
+		return extractConfigured(ctx, c, input, push)
+	}
+	return fmt.Errorf("No configuration file provided")
+}
+
+func extractConfigured(ctx context.Context, conf conf.Conf, in string,  push bool) error {
+	opts := []func(*metadata.Indexer) error{
+		metadata.Input(input),
+		metadata.WithConfiguration(conf.Elasticsearch),
 	}
 
 	idxer, err := metadata.NewIndexer(opts...)
@@ -93,6 +99,8 @@ func extract(ctx context.Context, push bool) error {
 	}
 	return nil
 }
+
+
 
 func simulateMeta(cmd *cobra.Command, args []string) error {
 	ctx := common.NewContext(importID)

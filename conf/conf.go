@@ -11,6 +11,7 @@ type Conf struct {
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
 	Binary        BinaryConf        `json:"binary"`
 	Kibana        KibanaConf        `json:"kibana"`
+	Dropzone      DropzoneConf      `json:"dropzone"`
 }
 
 type ElasticsearchConf struct {
@@ -25,6 +26,12 @@ type BinaryConf struct {
 	Width               uint   `json:"width"`
 	ResizingThreadCount int    `json:"resizingThreadCount"`
 	ToResizeChannelSize int    `json:"toResizeChannelSize"`
+}
+
+type DropzoneConf struct {
+	Root string `json:"root"`
+	NewFileChannelSize int `json:"newFilChannelSize"`
+	IngestionThreadCount int `json:"ingestionThreadCount"`
 }
 
 type KibanaConf struct {
