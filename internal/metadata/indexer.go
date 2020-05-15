@@ -44,7 +44,6 @@ const (
 
 type Indexer struct {
 	conf        conf.ElasticsearchConf
-	input       string
 	exif        *exif.Exiftool
 }
 
@@ -71,13 +70,8 @@ func (idxer *Indexer) toExtractChannelSize() int {
 	return n
 }
 
-func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
-	idxer := &Indexer{}
-	for _, opt := range opts {
-		if err := opt(idxer); err != nil {
-			return nil, fmt.Errorf("Initialization error: %v", err)
-		}
-	}
+func NewIndexer(c conf.ElasticsearchConf) (*Indexer, error) {
+	idxer := &Indexer{conf:c}
 
 	et, err := exif.NewExiftool()
 	if err != nil {
@@ -86,20 +80,6 @@ func NewIndexer(opts ...func(*Indexer) error) (*Indexer, error) {
 	idxer.exif = et
 
 	return idxer, nil
-}
-
-func Input(input string) func(*Indexer) error {
-	return func(idxer *Indexer) error {
-		idxer.input = input
-		return nil
-	}
-}
-
-func WithConfiguration(c conf.ElasticsearchConf) func(*Indexer) error {
-	return func(idxer *Indexer) error {
-		idxer.conf = c
-		return nil
-	}
 }
 
 func (idxer *Indexer) Close() error {
@@ -180,7 +160,7 @@ func (idxer *Indexer) startConverters(ctx context.Context, cancel context.Cancel
 	close(toDumpChan)
 }
 
-func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
+func (idxer *Indexer) Dump(ctx context.Context, root string, writer io.Writer) error {
 	ctx, cancel := context.WithCancel(ctx)
 
 	toExtractChan := make(chan extractTask, idxer.toExtractChannelSize())
@@ -191,7 +171,7 @@ func (idxer *Indexer) Dump(ctx context.Context, writer io.Writer) error {
 	go idxer.dump(ctx, cancel, &wg, toDumpChan, writer)
 	go idxer.startConverters(ctx, cancel, &wg, toExtractChan, toDumpChan)
 
-	err := common.BrowseImages(idxer.input, func(path string, info os.FileInfo) {
+	err := common.BrowseImages(root, func(path string, info os.FileInfo) {
 		toExtractChan <- extractTask{
 			path: path,
 			info: info,

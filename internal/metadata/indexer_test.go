@@ -3,7 +3,6 @@ package metadata
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/barasher/picdexer/conf"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +14,7 @@ import (
 )
 
 func TestConvertNominal(t *testing.T) {
-	idxer, err := NewIndexer()
+	idxer, err := NewIndexer(conf.ElasticsearchConf{})
 	assert.Nil(t, err)
 	defer idxer.Close()
 
@@ -39,41 +38,11 @@ func TestConvertNominal(t *testing.T) {
 	assert.Equal(t, "testdata", m.Folder)
 }
 
-func TestNewIndexerNominal(t *testing.T) {
-	v1 := false
-	f1 := func(idxer *Indexer) error {
-		v1 = true
-		return nil
-	}
-	v2 := false
-	f2 := func(idxer *Indexer) error {
-		v2 = true
-		return nil
-	}
-	idxer, err := NewIndexer(f1, f2)
-	assert.Nil(t, err)
-	defer idxer.Close()
-	assert.True(t, v1)
-	assert.True(t, v2)
-}
 
-func TestNewIndexerFailureOnOption(t *testing.T) {
-	f := func(idxer *Indexer) error {
-		return fmt.Errorf("error")
-	}
-	_, err := NewIndexer(f)
-	assert.NotNil(t, err)
-}
-
-func TestInput(t *testing.T) {
-	idxer, err := NewIndexer(Input("toto"))
-	assert.Nil(t, err)
-	assert.Equal(t, "toto", idxer.input)
-}
 
 func TestDumpNominal(t *testing.T) {
-	p, err := NewIndexer(Input("../../testdata"))
-	err = p.Dump(context.Background(), os.Stdout)
+	p, err := NewIndexer(conf.ElasticsearchConf{})
+	err = p.Dump(context.Background(), "../../testdata", os.Stdout)
 	assert.Nil(t, err)
 }
 
@@ -88,7 +57,7 @@ func TestPushNominal(t *testing.T) {
 	defer server.Close()
 
 	c := conf.ElasticsearchConf{Url: server.URL}
-	idxer, err := NewIndexer(WithConfiguration(c))
+	idxer, err := NewIndexer(c)
 	assert.Nil(t, err)
 	defer idxer.Close()
 
@@ -105,7 +74,7 @@ func TestPushWrongStatusCode(t *testing.T) {
 	defer server.Close()
 
 	c := conf.ElasticsearchConf{Url: server.URL}
-	idxer, err := NewIndexer(WithConfiguration(c))
+	idxer, err := NewIndexer(c)
 	assert.Nil(t, err)
 	defer idxer.Close()
 
@@ -115,7 +84,7 @@ func TestPushWrongStatusCode(t *testing.T) {
 }
 
 func TestPushPostFailure(t *testing.T) {
-	idxer, err := NewIndexer()
+	idxer, err := NewIndexer(conf.ElasticsearchConf{})
 	assert.Nil(t, err)
 	defer idxer.Close()
 

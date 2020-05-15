@@ -73,12 +73,7 @@ func extract(ctx context.Context, push bool) error {
 }
 
 func extractConfigured(ctx context.Context, conf conf.Conf, in string,  push bool) error {
-	opts := []func(*metadata.Indexer) error{
-		metadata.Input(input),
-		metadata.WithConfiguration(conf.Elasticsearch),
-	}
-
-	idxer, err := metadata.NewIndexer(opts...)
+	idxer, err := metadata.NewIndexer(conf.Elasticsearch)
 	if err != nil {
 		return fmt.Errorf("error while initializing metadata: %w", err)
 	}
@@ -86,14 +81,14 @@ func extractConfigured(ctx context.Context, conf conf.Conf, in string,  push boo
 
 	if push {
 		var buffer bytes.Buffer
-		if err := idxer.Dump(ctx, &buffer); err != nil {
+		if err := idxer.Dump(ctx, input ,&buffer); err != nil {
 			return fmt.Errorf("error while dumping: %v", err)
 		}
 		if err := idxer.Push(ctx, &buffer); err != nil {
 			return fmt.Errorf("error while pushing: %v", err)
 		}
 	} else {
-		if err := idxer.Dump(ctx, os.Stdout); err != nil {
+		if err := idxer.Dump(ctx, input, os.Stdout); err != nil {
 			return fmt.Errorf("error while dumping: %w", err)
 		}
 	}
