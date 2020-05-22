@@ -1,3 +1,9 @@
 {
-  "loggingLevel": "info"
+  "loggingLevel": "info",
+  "dropzone": {
+    "dropzone": {
+      "root": "/data/picdexer/dropzone",
+      "period": "1m"
+    }
+  }
 }

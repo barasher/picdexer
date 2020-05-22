@@ -35,6 +35,7 @@ In the **`picdexer`** docker image :
 - the configuration file is located in `/etc/picdexer/picdexer.json`
 - the "input" folder is located in `/data/picdexer/in/`
 - the "output" folder (for simulations) is located in `/data/picdexer/out/`
+- the default "dropzone" folder is `/data/picdexer/dropzone/`
 
 The configuration file is a JSON file, here is a complexe example :
 
@@ -55,6 +56,11 @@ The configuration file is a JSON file, here is a complexe example :
   },
   "kibana": {
     "url": "http://192.168.1.102:5601"
+  },
+  "dropzone": {
+    "root": "/tmp/foo",
+    "period": "5s",
+    "fileChannelSize": 10
   }
 }
 ```
@@ -67,9 +73,13 @@ The configuration file is a JSON file, here is a complexe example :
   - `url` (required if pictures are pushed) defines the `file-server` endpoint
   - `height` and `width` defines the target dimension of the pictures that will be stored. If one of the dimension is `0` then pictures will not be resized (default behaviour).
   - `resizingThreadCount`   (optional, default : `4`) defines how many thread have to be used to resize pictures
-  - `toResizeChannelSize` (optimal, default : `4`) defines the size of the file buffer (go channel) that will be consumed by the resizing goroutines
+  - `toResizeChannelSize` (optional, default : `4`) defines the size of the file buffer (go channel) that will be consumed by the resizing goroutines
 - `kibana` (required if user) configures the interaction with `kibana` (for configuration purpose)
   - `url` (required if kibana has to be configured) defines the `kibana` endpoint
+- `dropzone` (required if used) configures dropzone
+  - `root` (required) defines the watched folder
+  - `period` defines where waiting period between to watching iteration ([syntax](https://golang.org/pkg/time/#ParseDuration), ex : 1m, 1h, 30s, ...)
+  - `fileChannelSize` (optional, default : `10`) defines the size of the buffer (go channel) that will be consumed by indexation
 
 ## Picdexer commands
 
@@ -170,6 +180,20 @@ docker run --rm
 This command resizes pictures and stores the resized version in `file-server`.
 
 - Command line version : `./picdexer binary push -c [configurationFile] -d [sourceFolder]`.
+- Docker version :
+
+```shell script
+docker run --rm
+  -v [hostSourceFolder]:/data/picdexer/in
+  -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
+  barasher/picdexer:1.0.0 ./binary_push.sh
+```
+
+### Dropzone (watch a folder)
+
+This command watches a folder, index, stores pictures and delete files.
+
+- Command line version : `./picdexer dropzone -c [configurationFile]`
 - Docker version :
 
 ```shell script
