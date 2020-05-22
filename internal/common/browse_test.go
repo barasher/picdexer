@@ -15,3 +15,9 @@ func TestBrowse(t *testing.T) {
 	assert.Equal(t, 1, len(browsed))
 	assert.Equal(t, "../../testdata/picture.jpg", browsed[0])
 }
+
+func TestIsPicture(t *testing.T) {
+	assert.False(t, IsPicture("../../testdata/nonPictureFile.txt"))
+	assert.True(t, IsPicture("../../testdata/picture.jpg"))
+	assert.False(t, IsPicture("../../testdata/blabla"))
+}

@@ -14,6 +14,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tywkeene/go-fsevents v0.1.0
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f // indirect
+	golang.org/x/tools v0.0.0-20190828213141-aed303cbaa74
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )

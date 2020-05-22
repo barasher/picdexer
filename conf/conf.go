@@ -30,8 +30,8 @@ type BinaryConf struct {
 
 type DropzoneConf struct {
 	Root string `json:"root"`
-	NewFileChannelSize int `json:"newFilChannelSize"`
-	IngestionThreadCount int `json:"ingestionThreadCount"`
+	Period string `json:"period"`
+	FileChannelSize int `json:"fileChannelSize"`
 }
 
 type KibanaConf struct {

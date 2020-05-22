@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	exif "github.com/barasher/go-exiftool"
@@ -9,7 +8,6 @@ import (
 	"github.com/barasher/picdexer/internal/common"
 	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (
@@ -62,34 +60,27 @@ func init() {
 }
 
 func extract(ctx context.Context, push bool) error {
-	if confFile != "" {
-		c, err := conf.LoadConf(confFile)
-		if err != nil {
-			return err
-		}
-		return extractConfigured(ctx, c, input, push)
+	if confFile == "" {
+		return fmt.Errorf("no configuration file provided")
 	}
-	return fmt.Errorf("No configuration file provided")
-}
+	c, err := conf.LoadConf(confFile)
+	if err != nil {
+		return fmt.Errorf("error while loading configuration")
+	}
 
-func extractConfigured(ctx context.Context, conf conf.Conf, in string,  push bool) error {
-	idxer, err := metadata.NewIndexer(conf.Elasticsearch)
+	idxer, err := metadata.NewIndexer(c.Elasticsearch)
 	if err != nil {
 		return fmt.Errorf("error while initializing metadata: %w", err)
 	}
 	defer idxer.Close()
 
 	if push {
-		var buffer bytes.Buffer
-		if err := idxer.Dump(ctx, input ,&buffer); err != nil {
-			return fmt.Errorf("error while dumping: %v", err)
-		}
-		if err := idxer.Push(ctx, &buffer); err != nil {
-			return fmt.Errorf("error while pushing: %v", err)
+		if err := idxer.ExtractAndPushFolder(ctx, input); err != nil {
+			return fmt.Errorf("error while extracting metadata: %w", err)
 		}
 	} else {
-		if err := idxer.Dump(ctx, input, os.Stdout); err != nil {
-			return fmt.Errorf("error while dumping: %w", err)
+		if err := idxer.ExtractFolder(ctx, input); err != nil {
+			return fmt.Errorf("error while extracting metadata: %w", err)
 		}
 	}
 	return nil
