@@ -3,11 +3,13 @@ package cmd
 import (
 	"fmt"
 	"github.com/barasher/picdexer/conf"
+	"github.com/barasher/picdexer/internal/binary"
 	"github.com/barasher/picdexer/internal/common"
 	dropzone2 "github.com/barasher/picdexer/internal/dropzone"
 	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os"
 	"time"
 )
@@ -63,14 +65,14 @@ func dropzone(cmd *cobra.Command, args []string) error {
 	}
 	defer idxer.Close()
 
-	/*s, err := binary.NewStorer(c.Binary, true)
+	s, err := binary.NewStorer(c.Binary, true)
 	if err != nil {
 		return fmt.Errorf("error while initializing storer: %w", err)
 	}
 	binTmpDir, err := ioutil.TempDir(os.TempDir(), "picdexer")
 	if err != nil {
 		return fmt.Errorf("error while creating temporary folder: %v", err)
-	}*/
+	}
 
 	for {
 		log.Debug().Msgf("Watching iteration...")
@@ -81,7 +83,6 @@ func dropzone(cmd *cobra.Command, args []string) error {
 		}
 		if len(items) > 0 {
 			metaTasks := make(chan metadata.ExtractTask, fileChannelSize(c.Dropzone))
-
 			go func() {
 				for _, cur := range items {
 					if common.IsPicture(cur.Path) {
@@ -90,11 +91,21 @@ func dropzone(cmd *cobra.Command, args []string) error {
 				}
 				close(metaTasks)
 			}()
-
 			err = idxer.ExtractAndPushTasks(ctx, metaTasks)
 			if err != nil {
 				log.Error().Msgf("Error while extracting tasks: %v", err)
 			}
+
+			binTasks := make(chan string, fileChannelSize(c.Dropzone))
+			go func() {
+				for _, cur := range items {
+					if common.IsPicture(cur.Path) {
+						binTasks <- cur.Path
+					}
+				}
+				close(binTasks)
+			}()
+			s.StoreChannel(ctx, binTasks, binTmpDir)
 
 			for _, cur := range items {
 				if err := os.Remove(cur.Path); err != nil {
