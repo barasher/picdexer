@@ -41,7 +41,7 @@ func (r resizer) resize(ctx context.Context, f string, d string) (string, string
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
 	}
 	outPath := filepath.Join(d, outFilename)
-	args := []string{f, "-resize", r.dimensions, outPath}
+	args := []string{f, "-quiet", "-resize", r.dimensions, outPath}
 	cmd := exec.Command("convert", args...)
 	b, _ := cmd.CombinedOutput()
 	if len(b) > 0 {
