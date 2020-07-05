@@ -47,7 +47,6 @@ func (r resizer) resize(ctx context.Context, f string, d string) (string, string
 	if len(b) > 0 {
 		return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
 	}
-	fmt.Printf("-%s\n", string(b))
 	return outPath, outFilename, nil
 }
 
