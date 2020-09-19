@@ -3,7 +3,7 @@ module github.com/barasher/picdexer
 go 1.12
 
 require (
-	github.com/barasher/go-exiftool v1.1.1
+	github.com/barasher/go-exiftool v1.3.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gabriel-vasile/mimetype v1.1.0
 	github.com/kr/pretty v0.1.0 // indirect
