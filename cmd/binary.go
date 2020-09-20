@@ -59,6 +59,9 @@ func doBin(push bool) error {
 }
 
 func doBinConfigured(push bool, conf conf.Conf, in string, out string) error {
+	if err := setLoggingLevel(conf.LogLevel) ; err != nil {
+		return fmt.Errorf("error while configuring logging level: %w", err)
+	}
 	s, err := binary.NewStorer(conf.Binary, push)
 	if err != nil {
 		return fmt.Errorf("error while initializing storer: %w", err)

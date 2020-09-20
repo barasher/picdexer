@@ -59,16 +59,12 @@ func init() {
 	rootCmd.AddCommand(metaCmd)
 }
 
-func extract(ctx context.Context, push bool) error {
-	if confFile == "" {
-		return fmt.Errorf("no configuration file provided")
-	}
-	c, err := conf.LoadConf(confFile)
-	if err != nil {
-		return fmt.Errorf("error while loading configuration")
+func extractConfigured(ctx context.Context, conf conf.Conf, push bool) error {
+	if err := setLoggingLevel(conf.LogLevel) ; err != nil {
+		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
 
-	idxer, err := metadata.NewIndexer(c.Elasticsearch)
+	idxer, err := metadata.NewIndexer(conf.Elasticsearch)
 	if err != nil {
 		return fmt.Errorf("error while initializing metadata: %w", err)
 	}
@@ -86,7 +82,17 @@ func extract(ctx context.Context, push bool) error {
 	return nil
 }
 
+func extract(ctx context.Context, push bool) error {
+	if confFile == "" {
+		return fmt.Errorf("no configuration file provided")
+	}
+	c, err := conf.LoadConf(confFile)
+	if err != nil {
+		return fmt.Errorf("error while loading configuration")
+	}
 
+	return extractConfigured(ctx, c, push)
+}
 
 func simulateMeta(cmd *cobra.Command, args []string) error {
 	ctx := common.NewContext(importID)

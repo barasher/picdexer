@@ -30,6 +30,10 @@ func configure(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if err := setLoggingLevel(c.LogLevel) ; err != nil {
+		return fmt.Errorf("error while configuring logging level: %w", err)
+	}
+
 	s, err := setup.NewSetup(c)
 	if err != nil {
 		return fmt.Errorf("Setup initialization error: %w", err)

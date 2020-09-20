@@ -48,6 +48,11 @@ func dropzone(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error while loading configuration (%v): %w", confFile, err)
 		}
 	}
+
+	if err := setLoggingLevel(c.LogLevel) ; err != nil {
+		return fmt.Errorf("error while configuring logging level: %w", err)
+	}
+
 	ctx := common.NewContext(importID)
 
 	fw, err := dropzone2.NewFileWatcher(c.Dropzone)
