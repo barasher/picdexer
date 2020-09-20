@@ -19,7 +19,7 @@ var (
 func init() {
 	// full
 	fullCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
-	fullCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File containing pictures")
+	fullCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "Directory/File containing pictures")
 	fullCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	fullCmd.MarkFlagRequired("conf")
 	fullCmd.MarkFlagRequired("dir")
@@ -43,7 +43,7 @@ func full(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Info().Msg("Indexing metadata...")
-	if err :=  extractConfigured(ctx, c, true); err != nil {
+	if err :=  extractConfigured(ctx, c, input,true); err != nil {
 		return fmt.Errorf("Error while indexing metadata: %w", err)
 	}
 	log.Info().Msg("Storing pictures...")

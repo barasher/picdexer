@@ -17,7 +17,7 @@ var (
 		Use:   "picdexer",
 		Short: "Picture metadata",
 	}
-	input    string
+	input    []string
 	output   string
 	importID string
 	confFile string

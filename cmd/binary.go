@@ -30,7 +30,7 @@ var (
 func init() {
 	// simulate
 	binSimuCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
-	binSimuCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File containing pictures")
+	binSimuCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "Directory/File containing pictures")
 	binSimuCmd.Flags().StringVarP(&output, "out", "o", "", "Output dir")
 	binSimuCmd.MarkFlagRequired("conf")
 	binSimuCmd.MarkFlagRequired("dir")
@@ -39,7 +39,7 @@ func init() {
 	
 	// push
 	binPushCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
-	binPushCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File containing pictures")
+	binPushCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "Directory/File containing pictures")
 	binPushCmd.MarkFlagRequired("conf")
 	binPushCmd.MarkFlagRequired("dir")
 	binCmd.AddCommand(binPushCmd)
@@ -58,7 +58,7 @@ func doBin(push bool) error {
 	return fmt.Errorf("No configuration file provided")
 }
 
-func doBinConfigured(push bool, conf conf.Conf, in string, out string) error {
+func doBinConfigured(push bool, conf conf.Conf, inputs []string, out string) error {
 	if err := setLoggingLevel(conf.LogLevel) ; err != nil {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
@@ -68,7 +68,10 @@ func doBinConfigured(push bool, conf conf.Conf, in string, out string) error {
 	}
 
 	ctx := context.Background()
-	s.StoreFolder(ctx, in, out)
+
+	for _, curInput := range inputs {
+		s.StoreFolder(ctx, curInput, out)
+	}
 
 	return nil
 }

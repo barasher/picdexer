@@ -38,19 +38,19 @@ var (
 func init() {
 	// simulate
 	metaSimuCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
-	metaSimuCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
+	metaSimuCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "Directory/File containing pictures")
 	metaSimuCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	metaSimuCmd.MarkFlagRequired("dir")
 	metaCmd.AddCommand(metaSimuCmd)
 
 	// display
-	metaDisplayCmd.Flags().StringVarP(&input, "file", "f", "", "File to extract")
+	metaDisplayCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "File to extract")
 	metaDisplayCmd.MarkFlagRequired("file")
 	metaCmd.AddCommand(metaDisplayCmd)
 
 	// index
 	metaIndexCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
-	metaIndexCmd.Flags().StringVarP(&input, "dir", "d", "", "Directory/File to index")
+	metaIndexCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "Directory/File containing pictures")
 	metaIndexCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 	metaIndexCmd.MarkFlagRequired("dir")
 	metaIndexCmd.MarkFlagRequired("conf")
@@ -59,7 +59,7 @@ func init() {
 	rootCmd.AddCommand(metaCmd)
 }
 
-func extractConfigured(ctx context.Context, conf conf.Conf, push bool) error {
+func extractConfigured(ctx context.Context, conf conf.Conf, inputs []string, push bool) error {
 	if err := setLoggingLevel(conf.LogLevel) ; err != nil {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
@@ -70,13 +70,15 @@ func extractConfigured(ctx context.Context, conf conf.Conf, push bool) error {
 	}
 	defer idxer.Close()
 
-	if push {
-		if err := idxer.ExtractAndPushFolder(ctx, input); err != nil {
-			return fmt.Errorf("error while extracting metadata: %w", err)
-		}
-	} else {
-		if err := idxer.ExtractFolder(ctx, input); err != nil {
-			return fmt.Errorf("error while extracting metadata: %w", err)
+	for _, curInput := range inputs {
+		if push {
+			if err := idxer.ExtractAndPushFolder(ctx, curInput); err != nil {
+				return fmt.Errorf("error while extracting metadata: %w", err)
+			}
+		} else {
+			if err := idxer.ExtractFolder(ctx, curInput); err != nil {
+				return fmt.Errorf("error while extracting metadata: %w", err)
+			}
 		}
 	}
 	return nil
@@ -91,7 +93,7 @@ func extract(ctx context.Context, push bool) error {
 		return fmt.Errorf("error while loading configuration")
 	}
 
-	return extractConfigured(ctx, c, push)
+	return extractConfigured(ctx, c, input, push)
 }
 
 func simulateMeta(cmd *cobra.Command, args []string) error {
@@ -111,7 +113,7 @@ func displayMeta(cmd *cobra.Command, args []string) error {
 	}
 	defer et.Close()
 
-	metas := et.ExtractMetadata(input)
+	metas := et.ExtractMetadata(input...)
 	if len(metas) != 1 {
 		return fmt.Errorf("wrong metadatas count (%v)", len(metas))
 	}
