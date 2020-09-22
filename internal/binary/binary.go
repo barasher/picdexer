@@ -106,14 +106,14 @@ func (s *Storer) storeChannel(ctx context.Context, threadId int, c <-chan string
 
 	for cur := range c {
 
-		subLog.Debug().Str(fileIdentifier, cur).Msg("Resizing...")
+		subLog.Info().Str(fileIdentifier, cur).Msg("Resizing...")
 		outBin, outKey, err := s.resizer.resize(ctx, cur, dir)
 		if err != nil {
 			subLog.Error().Str(fileIdentifier, cur).Msgf("Error while resizing: %v", err)
 			continue
 		}
 
-		subLog.Debug().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msg("Pushing...")
+		subLog.Info().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msg("Pushing...")
 		err = s.pusher.push(outBin, outKey)
 		if err != nil {
 			subLog.Error().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msgf("Error while pushing: %v", err)

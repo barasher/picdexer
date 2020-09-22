@@ -105,7 +105,7 @@ type printTask struct {
 }
 
 func (idxer *Indexer) convert(ctx context.Context, f string, fInfo os.FileInfo) (Model, error) {
-	log.Info().Str(logFileIdentifier, f).Msg("Converting...")
+	log.Info().Str(logFileIdentifier, f).Msg("Extracting metadata...")
 	pic := Model{}
 
 	metas := idxer.exif.ExtractMetadata(f)
