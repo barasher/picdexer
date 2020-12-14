@@ -17,6 +17,7 @@ type Task struct {
 }
 
 func BrowseImages(ctx context.Context, dir string, outFileChan chan Task) error {
+	defer close(outFileChan)
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

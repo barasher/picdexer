@@ -34,8 +34,6 @@ const (
 
 	srcDateFormat = "2006:01:02 15:04:05"
 
-	logFileIdentifier = "file"
-
 	defaultExtrationThreadCount = 4
 
 )
@@ -113,7 +111,7 @@ func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan ch
 					if !ok {
 						return
 					}
-					picMeta, err := ext.convert(ctx, task.Path, task.Info)
+					picMeta, err := ext.extractMetadataFromFile(ctx, task.Path, task.Info)
 					if err != nil {
 						log.Error().Str(logFileIdentifier, task.Path).Msgf("conversion error: %v", err)
 					} else {
@@ -130,7 +128,7 @@ func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan ch
 	return nil
 }
 
-func (ext *MetadataExtractor) convert(ctx context.Context, f string, fInfo os.FileInfo) (PictureMetadata, error) {
+func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, f string, fInfo os.FileInfo) (PictureMetadata, error) {
 	log.Info().Str(logFileIdentifier, f).Msg("Extracting metadata...")
 	pic := PictureMetadata{}
 
@@ -162,7 +160,6 @@ func (ext *MetadataExtractor) convert(ctx context.Context, f string, fInfo os.Fi
 
 	return pic, nil
 }
-
 
 func getID(file string) (string, error) {
 	f, err := os.Open(file)
@@ -293,3 +290,4 @@ func convertGPSCoordinates(latLong string) (float32, float32, error) {
 	}
 	return lat, long, nil
 }
+
