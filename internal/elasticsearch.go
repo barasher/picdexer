@@ -2,6 +2,11 @@ package internal
 
 import "context"
 
+const (
+
+	defaultBulkSize = 30
+)
+
 type EsDoc struct {
 	Header struct {
 		Index string `json:"_index"`
@@ -10,14 +15,31 @@ type EsDoc struct {
 	Document interface{}
 }
 
-func BuildEsDocuments(ctx context.Context, inModelChan chan PictureMetadata, outEsDocChan chan EsDoc) error {
+type EsPusher struct {
+	conf EsPusherConf
+}
+
+type EsPusherConf struct {
+	BulkSize int    `json:"bulkSize"`
+}
+
+func NewEsPusher(conf EsPusherConf) (*EsPusher, error) {
+	p := EsPusher{conf: conf}
+	return &p, nil
+}
+
+func (p *EsPusher) bulkSize() int {
+	n := p.conf.BulkSize
+	if n < 1 {
+		n = defaultBulkSize
+	}
+	return n
+}
+
+func (*EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error {
 	return nil
 }
 
-func PushToEs(ctx context.Context, inEsDocChan chan EsDoc) error {
-	return nil
-}
-
-func PrintEsDocuments(ctx context.Context, inEsDocChan chan EsDoc) error {
+func (*EsPusher) Print(ctx context.Context, inEsDocChan chan EsDoc) error {
 	return nil
 }

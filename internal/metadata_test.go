@@ -290,7 +290,7 @@ func TestGetID(t *testing.T) {
 
 }
 
-func TestExtractionThreadCount(t *testing.T) {
+func TestThreadCount(t *testing.T) {
 	var tcs = []struct {
 		tcID        string
 		inConfValue int
