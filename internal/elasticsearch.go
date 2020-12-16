@@ -51,7 +51,11 @@ func (p *EsPusher) bulkSize() int {
 	return n
 }
 
-func (pusher *EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error {
+/*func (pusher *EsPusher) sink(ctx context.Context, inEsDocChan chan EsDoc) error {
+
+}*/
+
+func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc,  collectFct func(ctx context.Context, reader io.Reader) error) error {
 	buffer := bytes.Buffer{}
 	jsonEncoder := json.NewEncoder(&buffer)
 	bufferDocCount := 0
@@ -63,8 +67,8 @@ func (pusher *EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error 
 		case doc, ok := <-inEsDocChan:
 			if !ok {
 				if bufferDocCount > 0 {
-					if err := pusher.pushToEs(ctx, &buffer); err != nil {
-						return fmt.Errorf("error while pushing to elasticsearch: %w", err)
+					if err := collectFct(ctx, &buffer); err != nil {
+						return fmt.Errorf("error while sinking buffer: %w", err)
 					}
 				}
 				return nil
@@ -79,8 +83,8 @@ func (pusher *EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error 
 			}
 			bufferDocCount++
 			if bufferDocCount == pusher.bulkSize() {
-				if err := pusher.pushToEs(ctx, &buffer); err != nil {
-					return fmt.Errorf("error while pushing to elasticsearch: %w", err)
+				if err := collectFct(ctx, &buffer); err != nil {
+					return fmt.Errorf("error while sinking buffer: %w", err)
 				}
 				bufferDocCount = 0
 			}
@@ -88,6 +92,24 @@ func (pusher *EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error 
 	}
 
 	return nil
+}
+
+
+func (pusher *EsPusher) Print(ctx context.Context, inEsDocChan chan EsDoc) error {
+	return pusher.sinkChan(ctx, inEsDocChan, func(ctx context.Context, reader io.Reader) error {
+		b, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return fmt.Errorf("error while printing documents: %w", err)
+		}
+		fmt.Printf("%v", string(b))
+		return nil
+	})
+}
+
+func (pusher *EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error {
+	return pusher.sinkChan(ctx, inEsDocChan, func(ctx context.Context, reader io.Reader) error {
+		return pusher.pushToEs(ctx, reader)
+	})
 }
 
 func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
@@ -118,6 +140,3 @@ func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
 	return nil
 }
 
-func (*EsPusher) Print(ctx context.Context, inEsDocChan chan EsDoc) error {
-	return nil
-}

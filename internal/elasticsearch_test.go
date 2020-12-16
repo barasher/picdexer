@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -140,4 +141,32 @@ func TestPush_ErrorOnPush2(t *testing.T) {
 	close(inChan)
 
 	assert.NotNil(t, pusher.Push(context.TODO(), inChan))
+}
+
+func ExamplePrint() {
+	pusher, err := NewEsPusher(EsPusherConf{ BulkSize: 2})
+	if err != nil {
+		fmt.Printf("Error: %v", err)
+		return
+	}
+
+	inChan := make(chan EsDoc, 4)
+	inChan <- buildEsDoc("id1", "f1.jpg")
+	inChan <- buildEsDoc("id2", "f2.jpg")
+	inChan <- buildEsDoc("id3", "f3.jpg")
+	close(inChan)
+
+	err = pusher.Print(context.TODO(), inChan)
+	if err != nil {
+		fmt.Printf("Error: %v", err)
+		return
+	}
+
+	// Output:
+	// {"_index":"idx","_id":"id1"}
+	// {"FileName":"f1.jpg","Folder":"","ImportID":"","FileSize":0}
+	// {"_index":"idx","_id":"id2"}
+	// {"FileName":"f2.jpg","Folder":"","ImportID":"","FileSize":0}
+	// {"_index":"idx","_id":"id3"}
+	// {"FileName":"f3.jpg","Folder":"","ImportID":"","FileSize":0}
 }
