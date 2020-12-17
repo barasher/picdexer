@@ -11,10 +11,19 @@ import (
 	"testing"
 )
 
-func TestNewEsPusherDefaults(t *testing.T) {
+func TestNewEsPusher_Defaults(t *testing.T) {
 	p, err := NewEsPusher()
 	assert.Nil(t, err)
 	assert.Equal(t, defaultBulkSize, p.bulkSize)
+}
+
+
+
+func TestNewEsPusher_ErrorOnOpts(t *testing.T) {
+	_, err := NewEsPusher(func(*EsPusher)error {
+		return fmt.Errorf("anError")
+	})
+	assert.NotNil(t, err)
 }
 
 func TestBulkSize(t *testing.T) {
