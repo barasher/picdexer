@@ -40,10 +40,6 @@ const (
 
 var defaultDate = uint64(0)
 
-type MetadataExtractorConf struct {
-	ExtractionThreadCount int    `json:"extractionThreadCount"`
-}
-
 type PictureMetadata struct {
 	FileName     string
 	Folder       string
@@ -64,18 +60,35 @@ type PictureMetadata struct {
 }
 
 type MetadataExtractor struct {
-	conf MetadataExtractorConf
+	threadCount int
 	exif *exif.Exiftool
 }
 
-func NewMetadataExtractor(conf MetadataExtractorConf) (*MetadataExtractor, error) {
-	extractor := &MetadataExtractor{conf: conf}
+func NewMetadataExtractor(opts ...func(*MetadataExtractor) error) (*MetadataExtractor, error) {
+	e := &MetadataExtractor{threadCount:defaultExtrationThreadCount}
+
 	et, err := exif.NewExiftool()
 	if err != nil {
-		return extractor, fmt.Errorf("error while initializing metadata extractor: %v", err)
+		return nil, fmt.Errorf("error while initializing metadata extractor: %v", err)
 	}
-	extractor.exif = et
-	return extractor, nil
+	e.exif = et
+
+	for _, cur := range opts {
+		if err := cur(e); err != nil {
+			return nil, fmt.Errorf("error while creating MetadataExtractor: %w", err)
+		}
+	}
+	return e, nil
+}
+
+func MetadataExtractorThreadCount(c int) func(*MetadataExtractor) error {
+	return func(e *MetadataExtractor) error {
+		if c <= 0 {
+			return fmt.Errorf("wrong thread count value (%v), must be > 0", c)
+		}
+		e.threadCount = c
+		return nil
+	}
 }
 
 func (ext *MetadataExtractor) Close() error {
@@ -87,20 +100,11 @@ func (ext *MetadataExtractor) Close() error {
 	return nil
 }
 
-func (ext *MetadataExtractor) threadCount() int {
-	n := ext.conf.ExtractionThreadCount
-	if n < 1 {
-		n = defaultExtrationThreadCount
-	}
-	return n
-}
-
 func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan chan Task, outPicMetaChan chan PictureMetadata) error {
-	extractionThreadCount := ext.threadCount()
 	wg := sync.WaitGroup{}
-	wg.Add(extractionThreadCount)
+	wg.Add(ext.threadCount)
 
-	for i := 0; i < extractionThreadCount; i++ {
+	for i := 0; i < ext.threadCount; i++ {
 		go func(goRoutineId int) {
 			defer wg.Done()
 			for {

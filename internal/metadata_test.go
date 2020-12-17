@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	exif "github.com/barasher/go-exiftool"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -290,23 +291,40 @@ func TestGetID(t *testing.T) {
 
 }
 
+func TestNewMetadataExtractor_Defaults(t *testing.T) {
+	e, err := NewMetadataExtractor()
+	assert.Nil(t, err)
+	assert.Equal(t, defaultExtrationThreadCount, e.threadCount)
+}
+
+func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
+	_, err := NewMetadataExtractor(func(*MetadataExtractor)error {
+		return fmt.Errorf("anError")
+	})
+	assert.NotNil(t, err)
+}
+
 func TestThreadCount(t *testing.T) {
 	var tcs = []struct {
 		tcID        string
 		inConfValue int
+		expSuccess bool
 		expValue    int
 	}{
-		{"-1", -1, defaultExtrationThreadCount},
-		{"0", 0, defaultExtrationThreadCount},
-		{"5", 5, 5},
+		{"-1", -1, false, 0},
+		{"0", 0,  false, 0},
+		{"5", 5, true, 5},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			c := MetadataExtractorConf{ExtractionThreadCount: tc.inConfValue}
-			ext, err := NewMetadataExtractor(c)
-			assert.Nil(t, err)
-			assert.Equal(t, tc.expValue, ext.threadCount())
+			ext, err := NewMetadataExtractor(MetadataExtractorThreadCount(tc.inConfValue))
+			if tc.expSuccess {
+				assert.Nil(t, err)
+				assert.Equal(t, tc.expValue, ext.threadCount)
+			} else {
+				assert.NotNil(t, err)
+			}
 		})
 	}
 }
@@ -327,7 +345,7 @@ func checkTestdataPictureResult(t *testing.T, m PictureMetadata) {
 }
 
 func TestExtractMetadataFromFileNominal(t *testing.T) {
-	ext, err := NewMetadataExtractor(MetadataExtractorConf{})
+	ext, err := NewMetadataExtractor()
 	assert.Nil(t, err)
 	defer ext.Close()
 
@@ -350,7 +368,7 @@ func TestExtractMetadata(t *testing.T) {
 	inChan <- Task{Path: f, Info: fInfo}
 	close(inChan)
 
-	ext, err := NewMetadataExtractor(MetadataExtractorConf{})
+	ext, err := NewMetadataExtractor()
 	assert.Nil(t, err)
 	err = ext.ExtractMetadata(context.TODO(), inChan, outChan)
 	assert.Nil(t, err)
