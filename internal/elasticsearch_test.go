@@ -11,23 +11,34 @@ import (
 	"testing"
 )
 
+func TestNewEsPusherDefaults(t *testing.T) {
+	p, err := NewEsPusher()
+	assert.Nil(t, err)
+	assert.Equal(t, defaultBulkSize, p.bulkSize)
+}
+
 func TestBulkSize(t *testing.T) {
 	var tcs = []struct {
 		tcID        string
 		inConfValue int
+		expSuccess bool
 		expValue    int
 	}{
-		{"-1", -1, defaultBulkSize},
-		{"0", 0, defaultBulkSize},
-		{"5", 5, 5},
+		{"-1", -1, false, 0},
+		{"0", 0, false, 0},
+		{"5", 5, true, 5},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			c := EsPusherConf{BulkSize: tc.inConfValue}
-			p, err := NewEsPusher(c)
-			assert.Nil(t, err)
-			assert.Equal(t, tc.expValue, p.bulkSize())
+			p := &EsPusher{}
+			err := BulkSize(tc.inConfValue)(p)
+			if tc.expSuccess {
+				assert.Nil(t, err)
+				assert.Equal(t, tc.expValue, p.bulkSize)
+			} else {
+				assert.NotNil(t, err)
+			}
 		})
 	}
 }
@@ -46,7 +57,7 @@ func TestPushToEs_Nominal(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsPusherConf{Url: ts.URL})
+	pusher, err := NewEsPusher(EsUrl(ts.URL))
 	assert.Nil(t, err)
 	assert.Nil(t, pusher.pushToEs(context.TODO(), strings.NewReader(expBody)))
 }
@@ -57,7 +68,7 @@ func TestPushToEs_BadHttpStatus(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsPusherConf{Url: ts.URL})
+	pusher, err := NewEsPusher(EsUrl(ts.URL))
 	assert.Nil(t, err)
 	assert.NotNil(t, pusher.pushToEs(context.TODO(), strings.NewReader("bla")))
 }
@@ -84,7 +95,7 @@ func TestPush_Nominal(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsPusherConf{Url: ts.URL, BulkSize: 2})
+	pusher, err := NewEsPusher(EsUrl(ts.URL), BulkSize(2))
 	assert.Nil(t, err)
 
 	inChan := make(chan EsDoc, 4)
@@ -109,7 +120,7 @@ func TestPush_ErrorOnPush(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsPusherConf{Url: ts.URL, BulkSize: 2})
+	pusher, err := NewEsPusher(EsUrl(ts.URL), BulkSize(2))
 	assert.Nil(t, err)
 
 	inChan := make(chan EsDoc, 1)
@@ -131,7 +142,7 @@ func TestPush_ErrorOnPush2(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsPusherConf{Url: ts.URL, BulkSize: 2})
+	pusher, err := NewEsPusher(EsUrl(ts.URL), BulkSize(2))
 	assert.Nil(t, err)
 
 	inChan := make(chan EsDoc, 3)
@@ -144,7 +155,7 @@ func TestPush_ErrorOnPush2(t *testing.T) {
 }
 
 func ExamplePrint() {
-	pusher, err := NewEsPusher(EsPusherConf{ BulkSize: 2})
+	pusher, err := NewEsPusher(EsUrl("a"), BulkSize(2))
 	if err != nil {
 		fmt.Printf("Error: %v", err)
 		return

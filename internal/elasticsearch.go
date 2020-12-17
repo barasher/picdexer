@@ -30,32 +30,38 @@ type EsDoc struct {
 }
 
 type EsPusher struct {
-	conf EsPusherConf
+	bulkSize int
+	url      string
 }
 
-type EsPusherConf struct {
-	BulkSize int    `json:"bulkSize"`
-	Url      string `json:"url"`
-}
-
-func NewEsPusher(conf EsPusherConf) (*EsPusher, error) {
-	p := EsPusher{conf: conf}
-	return &p, nil
-}
-
-func (p *EsPusher) bulkSize() int {
-	n := p.conf.BulkSize
-	if n < 1 {
-		n = defaultBulkSize
+func NewEsPusher(opts ...func(*EsPusher) error) (*EsPusher, error) {
+	p := &EsPusher{bulkSize: defaultBulkSize}
+	for _, cur := range opts {
+		if err := cur(p); err != nil {
+			return nil, fmt.Errorf("error while creating EsPusher: %w", err)
+		}
 	}
-	return n
+	return p, nil
 }
 
-/*func (pusher *EsPusher) sink(ctx context.Context, inEsDocChan chan EsDoc) error {
+func BulkSize(size int) func(*EsPusher) error {
+	return func(p *EsPusher) error {
+		if size <= 0 {
+			return fmt.Errorf("wrong bulksize value (%v), must be > 0", size)
+		}
+		p.bulkSize = size
+		return nil
+	}
+}
 
-}*/
+func EsUrl(url string) func(*EsPusher) error {
+	return func(p *EsPusher) error {
+		p.url = url
+		return nil
+	}
+}
 
-func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc,  collectFct func(ctx context.Context, reader io.Reader) error) error {
+func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, collectFct func(ctx context.Context, reader io.Reader) error) error {
 	buffer := bytes.Buffer{}
 	jsonEncoder := json.NewEncoder(&buffer)
 	bufferDocCount := 0
@@ -82,7 +88,7 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc,  c
 				return fmt.Errorf("error while encoding body: %w", err)
 			}
 			bufferDocCount++
-			if bufferDocCount == pusher.bulkSize() {
+			if bufferDocCount == pusher.bulkSize {
 				if err := collectFct(ctx, &buffer); err != nil {
 					return fmt.Errorf("error while sinking buffer: %w", err)
 				}
@@ -93,7 +99,6 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc,  c
 
 	return nil
 }
-
 
 func (pusher *EsPusher) Print(ctx context.Context, inEsDocChan chan EsDoc) error {
 	return pusher.sinkChan(ctx, inEsDocChan, func(ctx context.Context, reader io.Reader) error {
@@ -113,9 +118,9 @@ func (pusher *EsPusher) Push(ctx context.Context, inEsDocChan chan EsDoc) error 
 }
 
 func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
-	u, err := url.Parse(pusher.conf.Url)
+	u, err := url.Parse(pusher.url)
 	if err != nil {
-		return fmt.Errorf("error while parsing elasticsearch url (%v): %w", pusher.conf.Url, err)
+		return fmt.Errorf("error while parsing elasticsearch url (%v): %w", pusher.url, err)
 	}
 	u.Path = path.Join(u.Path, bulkSuffix)
 
@@ -139,4 +144,3 @@ func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
 
 	return nil
 }
-
