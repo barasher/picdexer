@@ -69,7 +69,7 @@ func NewMetadataExtractor(opts ...func(*MetadataExtractor) error) (*MetadataExtr
 
 	et, err := exif.NewExiftool()
 	if err != nil {
-		return nil, fmt.Errorf("error while initializing metadata extractor: %v", err)
+		return nil, fmt.Errorf("error while initializing Exiftool: %v", err)
 	}
 	e.exif = et
 
