@@ -304,7 +304,7 @@ func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestThreadCount(t *testing.T) {
+func TestMetadataExtractorThreadCount(t *testing.T) {
 	var tcs = []struct {
 		tcID        string
 		inConfValue int
