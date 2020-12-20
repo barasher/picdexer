@@ -7,49 +7,38 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 )
 
-func TestNewEsPusher_Defaults(t *testing.T) {
-	p, err := NewEsPusher()
-	assert.Nil(t, err)
-	assert.Equal(t, defaultBulkSize, p.bulkSize)
-}
-
-
-
-func TestNewEsPusher_ErrorOnOpts(t *testing.T) {
-	_, err := NewEsPusher(func(*EsPusher)error {
-		return fmt.Errorf("anError")
-	})
-	assert.NotNil(t, err)
-}
-
-func TestBulkSize(t *testing.T) {
+func TestNewEsPusher(t *testing.T) {
 	var tcs = []struct {
-		tcID        string
-		inConfValue int
-		expSuccess bool
-		expValue    int
+		inBS  int
+		expOk bool
 	}{
-		{"-1", -1, false, 0},
-		{"0", 0, false, 0},
-		{"5", 5, true, 5},
+		{-1, false},
+		{0, false},
+		{2, true},
 	}
-
 	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			p := &EsPusher{}
-			err := BulkSize(tc.inConfValue)(p)
-			if tc.expSuccess {
+		t.Run(strconv.Itoa(tc.inBS), func(t *testing.T) {
+			p, err := NewEsPusher(tc.inBS)
+			if tc.expOk {
 				assert.Nil(t, err)
-				assert.Equal(t, tc.expValue, p.bulkSize)
+				assert.Equal(t, tc.inBS, p.bulkSize)
 			} else {
 				assert.NotNil(t, err)
 			}
 		})
 	}
+}
+
+func TestNewEsPusher_ErrorOnOpts(t *testing.T) {
+	_, err := NewEsPusher(50, func(*EsPusher) error {
+		return fmt.Errorf("anError")
+	})
+	assert.NotNil(t, err)
 }
 
 func TestPushToEs_Nominal(t *testing.T) {
@@ -66,7 +55,7 @@ func TestPushToEs_Nominal(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsUrl(ts.URL))
+	pusher, err := NewEsPusher(50, EsUrl(ts.URL))
 	assert.Nil(t, err)
 	assert.Nil(t, pusher.pushToEs(context.TODO(), strings.NewReader(expBody)))
 }
@@ -77,7 +66,7 @@ func TestPushToEs_BadHttpStatus(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsUrl(ts.URL))
+	pusher, err := NewEsPusher(50, EsUrl(ts.URL))
 	assert.Nil(t, err)
 	assert.NotNil(t, pusher.pushToEs(context.TODO(), strings.NewReader("bla")))
 }
@@ -104,7 +93,7 @@ func TestPush_Nominal(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsUrl(ts.URL), BulkSize(2))
+	pusher, err := NewEsPusher(2, EsUrl(ts.URL))
 	assert.Nil(t, err)
 
 	inChan := make(chan EsDoc, 4)
@@ -129,7 +118,7 @@ func TestPush_ErrorOnPush(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsUrl(ts.URL), BulkSize(2))
+	pusher, err := NewEsPusher(2, EsUrl(ts.URL))
 	assert.Nil(t, err)
 
 	inChan := make(chan EsDoc, 1)
@@ -151,7 +140,7 @@ func TestPush_ErrorOnPush2(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	pusher, err := NewEsPusher(EsUrl(ts.URL), BulkSize(2))
+	pusher, err := NewEsPusher(2, EsUrl(ts.URL))
 	assert.Nil(t, err)
 
 	inChan := make(chan EsDoc, 3)
@@ -164,7 +153,7 @@ func TestPush_ErrorOnPush2(t *testing.T) {
 }
 
 func ExamplePrint() {
-	pusher, err := NewEsPusher(EsUrl("a"), BulkSize(2))
+	pusher, err := NewEsPusher(2, EsUrl("a"))
 	if err != nil {
 		fmt.Printf("Error: %v", err)
 		return
@@ -189,4 +178,33 @@ func ExamplePrint() {
 	// {"FileName":"f2.jpg","Folder":"","ImportID":"","FileSize":0}
 	// {"_index":"idx","_id":"id3"}
 	// {"FileName":"f3.jpg","Folder":"","ImportID":"","FileSize":0}
+}
+
+func TestConvertMetadataToEsDoc(t *testing.T) {
+	in := make(chan PictureMetadata, 2)
+	in <- PictureMetadata{
+		FileName:   "picture.jpg",
+		SourceFile: "../testdata/picture.jpg",
+	}
+	in <- PictureMetadata{
+		FileName:   "nonExisting.jpg",
+		SourceFile: "../testdata/nonExisting.jpg",
+	}
+	close(in)
+
+	out := make(chan EsDoc, 2)
+	ConvertMetadataToEsDoc(context.TODO(), in, out)
+
+	docs := []EsDoc{}
+	for cur := range out {
+		docs = append(docs, cur)
+	}
+
+	assert.Equal(t, 1, len(docs))
+	doc, ok := docs[0].Document.(PictureMetadata)
+	assert.True(t, ok)
+	assert.Equal(t, "../testdata/picture.jpg", doc.SourceFile)
+	assert.Equal(t, "picture.jpg", doc.FileName)
+	assert.Equal(t, "ec3d25618be7af41c6824855f0f42c73_picture.jpg", docs[0].Header.ID)
+	assert.Equal(t, "picdexer", docs[0].Header.Index)
 }

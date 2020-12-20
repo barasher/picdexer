@@ -6,6 +6,7 @@ import (
 	exif "github.com/barasher/go-exiftool"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -291,42 +292,34 @@ func TestGetID(t *testing.T) {
 
 }
 
-func TestNewMetadataExtractor_Defaults(t *testing.T) {
-	e, err := NewMetadataExtractor()
-	assert.Nil(t, err)
-	assert.Equal(t, defaultExtrationThreadCount, e.threadCount)
-}
-
-func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
-	_, err := NewMetadataExtractor(func(*MetadataExtractor)error {
-		return fmt.Errorf("anError")
-	})
-	assert.NotNil(t, err)
-}
-
-func TestMetadataExtractorThreadCount(t *testing.T) {
+func TestNewMetadataExtractor(t *testing.T) {
 	var tcs = []struct {
-		tcID        string
-		inConfValue int
-		expSuccess bool
-		expValue    int
+		inTC  int
+		expOk bool
 	}{
-		{"-1", -1, false, 0},
-		{"0", 0,  false, 0},
-		{"5", 5, true, 5},
+		{-1, false},
+		{0, false},
+		{2, true},
 	}
-
 	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			ext, err := NewMetadataExtractor(MetadataExtractorThreadCount(tc.inConfValue))
-			if tc.expSuccess {
+		t.Run(strconv.Itoa(tc.inTC), func(t *testing.T) {
+			me, err := NewMetadataExtractor(tc.inTC)
+			if tc.expOk {
+				defer me.Close()
 				assert.Nil(t, err)
-				assert.Equal(t, tc.expValue, ext.threadCount)
+				assert.Equal(t, tc.inTC, me.threadCount)
 			} else {
 				assert.NotNil(t, err)
 			}
 		})
 	}
+}
+
+func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
+	_, err := NewMetadataExtractor(4,func(*MetadataExtractor)error {
+		return fmt.Errorf("anError")
+	})
+	assert.NotNil(t, err)
 }
 
 func checkTestdataPictureResult(t *testing.T, m PictureMetadata) {
@@ -345,7 +338,7 @@ func checkTestdataPictureResult(t *testing.T, m PictureMetadata) {
 }
 
 func TestExtractMetadataFromFileNominal(t *testing.T) {
-	ext, err := NewMetadataExtractor()
+	ext, err := NewMetadataExtractor(4)
 	assert.Nil(t, err)
 	defer ext.Close()
 
@@ -368,7 +361,7 @@ func TestExtractMetadata(t *testing.T) {
 	inChan <- Task{Path: f, Info: fInfo}
 	close(inChan)
 
-	ext, err := NewMetadataExtractor()
+	ext, err := NewMetadataExtractor(4)
 	assert.Nil(t, err)
 	err = ext.ExtractMetadata(context.TODO(), inChan, outChan)
 	assert.Nil(t, err)

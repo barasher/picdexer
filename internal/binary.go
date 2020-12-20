@@ -9,19 +9,20 @@ import (
 	"sync"
 )
 
-const defaultBinaryManagerThreadCount = 4
-
 type BinaryManager struct {
 	threadCount int
-	resizer resizerInterface
-	pusher pusherInterface
+	resizer     resizerInterface
+	pusher      pusherInterface
 }
 
-func NewBinaryManager(opts ...func(*BinaryManager)error) (*BinaryManager, error){
+func NewBinaryManager(threadCount int, opts ...func(*BinaryManager)error) (*BinaryManager, error){
+	if threadCount <= 0 {
+		return nil, fmt.Errorf("threadCount should be >0 (%v)", threadCount)
+	}
 	bm := &BinaryManager{
-		threadCount:defaultBinaryManagerThreadCount,
-		resizer: NewNopResizer(),
-		pusher: NewNopPusher(),
+		threadCount: threadCount,
+		resizer:     NewNopResizer(),
+		pusher:      NewNopPusher(),
 	}
 	for _, cur := range opts {
 		if err := cur(bm) ; err != nil {
@@ -29,16 +30,6 @@ func NewBinaryManager(opts ...func(*BinaryManager)error) (*BinaryManager, error)
 		}
 	}
 	return bm, nil
-}
-
-func BinaryManagerThreadCount(c int) func(*BinaryManager) error {
-	return func(bm *BinaryManager) error {
-		if c <= 0 {
-			return fmt.Errorf("wrong thread count value (%v), must be > 0", c)
-		}
-		bm.threadCount = c
-		return nil
-	}
 }
 
 func BinaryManagerDoResize(w, h int) func(*BinaryManager) error {

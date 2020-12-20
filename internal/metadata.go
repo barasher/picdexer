@@ -34,8 +34,6 @@ const (
 
 	srcDateFormat = "2006:01:02 15:04:05"
 
-	defaultExtrationThreadCount = 4
-
 )
 
 var defaultDate = uint64(0)
@@ -57,15 +55,19 @@ type PictureMetadata struct {
 	Date         *uint64    `json:",omitempty"`
 	ParsedDate   *time.Time `json:"-"`
 	GPS          *string    `json:",omitempty"`
+	SourceFile   string     `json:"-"`
 }
 
 type MetadataExtractor struct {
 	threadCount int
-	exif *exif.Exiftool
+	exif        *exif.Exiftool
 }
 
-func NewMetadataExtractor(opts ...func(*MetadataExtractor) error) (*MetadataExtractor, error) {
-	e := &MetadataExtractor{threadCount:defaultExtrationThreadCount}
+func NewMetadataExtractor(threadCount int, opts ...func(*MetadataExtractor) error) (*MetadataExtractor, error) {
+	if threadCount <= 0 {
+		return nil, fmt.Errorf("threadCount should be >0 (%v)", threadCount)
+	}
+	e := &MetadataExtractor{threadCount: threadCount}
 
 	et, err := exif.NewExiftool()
 	if err != nil {
@@ -79,16 +81,6 @@ func NewMetadataExtractor(opts ...func(*MetadataExtractor) error) (*MetadataExtr
 		}
 	}
 	return e, nil
-}
-
-func MetadataExtractorThreadCount(c int) func(*MetadataExtractor) error {
-	return func(e *MetadataExtractor) error {
-		if c <= 0 {
-			return fmt.Errorf("wrong thread count value (%v), must be > 0", c)
-		}
-		e.threadCount = c
-		return nil
-	}
 }
 
 func (ext *MetadataExtractor) Close() error {
@@ -156,6 +148,7 @@ func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, f str
 	pic.FileName = fInfo.Name()
 	pic.Date = getDate(meta, captureDateKey)
 	pic.GPS = getGPS(meta, gpsKey)
+	pic.SourceFile = f
 
 	components := strings.Split(f, string(os.PathSeparator))
 	if len(components) > 1 {
@@ -294,4 +287,3 @@ func convertGPSCoordinates(latLong string) (float32, float32, error) {
 	}
 	return lat, long, nil
 }
-

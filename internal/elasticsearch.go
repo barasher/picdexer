@@ -16,17 +16,18 @@ import (
 
 const (
 	esDocIdentifier = "esDocId"
-	defaultBulkSize = 30
 	bulkSuffix      = "_bulk"
 	ndJsonMimeType  = "application/x-ndjson"
 )
 
 type EsDoc struct {
-	Header struct {
-		Index string `json:"_index"`
-		ID    string `json:"_id"`
-	} `json:"index"`
+	Header   EsHeader
 	Document interface{}
+}
+
+type EsHeader struct {
+	Index string `json:"_index"`
+	ID    string `json:"_id"`
 }
 
 type EsPusher struct {
@@ -34,24 +35,17 @@ type EsPusher struct {
 	url      string
 }
 
-func NewEsPusher(opts ...func(*EsPusher) error) (*EsPusher, error) {
-	p := &EsPusher{bulkSize: defaultBulkSize}
+func NewEsPusher(bulkSize int, opts ...func(*EsPusher) error) (*EsPusher, error) {
+	if bulkSize <= 0 {
+		return nil, fmt.Errorf("bulkSize should be >0 (%v)", bulkSize)
+	}
+	p := &EsPusher{bulkSize: bulkSize}
 	for _, cur := range opts {
 		if err := cur(p); err != nil {
 			return nil, fmt.Errorf("error while creating EsPusher: %w", err)
 		}
 	}
 	return p, nil
-}
-
-func BulkSize(size int) func(*EsPusher) error {
-	return func(p *EsPusher) error {
-		if size <= 0 {
-			return fmt.Errorf("wrong bulksize value (%v), must be > 0", size)
-		}
-		p.bulkSize = size
-		return nil
-	}
 }
 
 func EsUrl(url string) func(*EsPusher) error {
@@ -142,5 +136,32 @@ func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
 		return fmt.Errorf("wrong status code (%v)", resp.StatusCode)
 	}
 
+	return nil
+}
+
+func ConvertMetadataToEsDoc(ctx context.Context, in chan PictureMetadata, out chan EsDoc) error {
+	defer close(out)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case cur, ok := <-in:
+			if !ok {
+				return nil
+			}
+			id, err := getID(cur.SourceFile)
+			if err != nil {
+				log.Error().Str(logFileIdentifier, cur.SourceFile).Msgf("Error while building document Id: %v", err)
+				continue
+			}
+			out <- EsDoc{
+				Header: EsHeader{
+					Index: "picdexer",
+					ID:    id,
+				},
+				Document: cur,
+			}
+		}
+	}
 	return nil
 }

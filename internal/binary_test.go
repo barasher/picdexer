@@ -6,40 +6,32 @@ import (
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
 func TestNewBinaryManager_ErrorOnOpts(t *testing.T) {
-	_, err := NewBinaryManager(func(*BinaryManager) error {
+	_, err := NewBinaryManager(2,func(*BinaryManager) error {
 		return fmt.Errorf("anError")
 	})
 	assert.NotNil(t, err)
 }
 
-func TestNewBinaryManager_Defaults(t *testing.T) {
-	bm, err := NewBinaryManager()
-	assert.Nil(t, err)
-	assert.Equal(t, defaultBinaryManagerThreadCount, bm.threadCount)
-}
-
-func TestBinaryManagerThreadCount(t *testing.T) {
+func TestNewBinaryManager(t *testing.T) {
 	var tcs = []struct {
-		tcID        string
-		inConfValue int
-		expSuccess  bool
-		expValue    int
+		inTC   int
+		expOk bool
 	}{
-		{"-1", -1, false, 0},
-		{"0", 0, false, 0},
-		{"5", 5, true, 5},
+		{-1, false},
+		{0, false},
+		{2, true},
 	}
-
 	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			bm, err := NewBinaryManager(BinaryManagerThreadCount(tc.inConfValue))
-			if tc.expSuccess {
+		t.Run(strconv.Itoa(tc.inTC), func(t *testing.T) {
+			bm, err := NewBinaryManager(tc.inTC)
+			if tc.expOk {
 				assert.Nil(t, err)
-				assert.Equal(t, tc.expValue, bm.threadCount)
+				assert.Equal(t, tc.inTC, bm.threadCount)
 			} else {
 				assert.NotNil(t, err)
 			}
@@ -62,7 +54,7 @@ func TestBinaryManagerDoResize(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			bm, err := NewBinaryManager(BinaryManagerDoResize(tc.inW, tc.inH))
+			bm, err := NewBinaryManager(4,BinaryManagerDoResize(tc.inW, tc.inH))
 			if tc.expOk {
 				assert.Nil(t, err)
 				resizer, ok := bm.resizer.(resizer)
@@ -76,7 +68,7 @@ func TestBinaryManagerDoResize(t *testing.T) {
 }
 
 func TestBinaryManagerDoPush(t *testing.T) {
-	bm, err := NewBinaryManager(BinaryManagerDoPush("anUrl"))
+	bm, err := NewBinaryManager(4,BinaryManagerDoPush("anUrl"))
 	assert.Nil(t, err)
 	pusher, ok := bm.pusher.(pusher)
 	assert.True(t, ok)
@@ -100,7 +92,7 @@ func (m *mockSubStore) push(bin string, key string) error {
 
 func TestStore(t *testing.T) {
 	mock := &mockSubStore{}
-	bm, err := NewBinaryManager()
+	bm, err := NewBinaryManager(4)
 	assert.Nil(t, err)
 	bm.resizer = mock
 	bm.pusher = mock
