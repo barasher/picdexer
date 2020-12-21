@@ -5,12 +5,13 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
+
+const resizedFileIdentifier = "resizedFile"
 
 type resizerInterface interface {
 	resize(ctx context.Context, f string, o string) (string, string, error)
@@ -50,10 +51,8 @@ func (r resizer) resize(ctx context.Context, f string, d string) (string, string
 	return outPath, outFilename, nil
 }
 
-
-
-func NewResizer(c conf.BinaryConf) resizer {
-	return resizer{dimensions: fmt.Sprintf("%vx%v", c.Width, c.Height)}
+func NewResizer(w, h int) resizer {
+	return resizer{dimensions: fmt.Sprintf("%vx%v", w, h)}
 }
 
 type nopResizer struct {

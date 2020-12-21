@@ -3,7 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/barasher/picdexer/internal"
+	"github.com/barasher/picdexer/internal/binary"
+	"github.com/barasher/picdexer/internal/browse"
+	"github.com/barasher/picdexer/internal/dispatch"
+	"github.com/barasher/picdexer/internal/elasticsearch"
+	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/rs/zerolog/log"
 	"sync"
 )
@@ -21,40 +25,53 @@ func max(v1, v2 int) int {
 	return v1
 }
 
-func buildMetadataExtractor(c Config) (*internal.MetadataExtractor, int, error) {
+type MetadataExtractorInterface interface {
+	Close() error
+	ExtractMetadata(ctx context.Context, inTaskChan chan browse.Task, outPicMetaChan chan metadata.PictureMetadata) error
+}
+
+type BinaryManagerInterface interface {
+	Store(ctx context.Context, inTaskChan chan browse.Task, outDir string) error
+}
+
+type EsPusherInterface interface {
+	Push(ctx context.Context, inEsDocChan chan elasticsearch.EsDoc) error
+}
+
+func buildMetadataExtractor(c Config) (MetadataExtractorInterface, int, error) {
 	tc := c.Elasticsearch.ThreadCount
 	if tc == 0 {
 		tc = defaultMetadataThreadCount
 	}
-	me, err := internal.NewMetadataExtractor(tc)
+	me, err := metadata.NewMetadataExtractor(tc)
 	return me, tc, err
 }
 
-func  buildEsPusher(c Config) (*internal.EsPusher, error) {
+func  buildEsPusher(c Config) (EsPusherInterface, error) {
 	bs := c.Elasticsearch.BulkSize
 	if bs == 0 {
 		bs = defaultEsBulkSize
 	}
-	return internal.NewEsPusher(bs, internal.EsUrl(c.Elasticsearch.Url))
+	return elasticsearch.NewEsPusher(bs, elasticsearch.EsUrl(c.Elasticsearch.Url))
 }
 
-func buildBinaryManager(c Config) (*internal.BinaryManager, int, error) {
-	opts := []func(manager *internal.BinaryManager) error{}
+func buildBinaryManager(c Config) (BinaryManagerInterface, int, error) {
+	opts := []func(manager *binary.BinaryManager) error{}
 	if c.Binary.Url != "" {
-		opts = append(opts, internal.BinaryManagerDoPush(c.Binary.Url))
+		opts = append(opts, binary.BinaryManagerDoPush(c.Binary.Url))
 	}
 	if c.Binary.Width != 0 && c.Binary.Height != 0 {
-		opts = append(opts, internal.BinaryManagerDoResize(c.Binary.Width, c.Binary.Height))
+		opts = append(opts, binary.BinaryManagerDoResize(c.Binary.Width, c.Binary.Height))
 	}
 	tc := c.Binary.ThreadCount
 	if tc == 0 {
 		tc = defaultBinaryThreadCount
 	}
-	bm, err := internal.NewBinaryManager(tc, opts...)
+	bm, err := binary.NewBinaryManager(tc, opts...)
 	return bm, tc, err
 }
 
-func Run(c Config, input string) error {
+func Run(ctx context.Context, c Config, input []string) error {
 	metadataExtractor, metc, err := buildMetadataExtractor(c)
 	if err != nil {
 		return fmt.Errorf("error while building MetadataExtractor: %w", err)
@@ -68,12 +85,11 @@ func Run(c Config, input string) error {
 	if err != nil {
 		return fmt.Errorf("error while building EsPusher: %w", err)
 	}
-	browseChan := make(chan internal.Task, max(metc, bmtc))
-	binToPushChan := make(chan internal.Task, bmtc)
-	metaToExtractChan := make(chan internal.Task, metc)
-	metaToConvertChan := make(chan internal.PictureMetadata, metc)
-	docToPushChan := make(chan internal.EsDoc, metc)
-	ctx := context.Background()
+	browseChan := make(chan browse.Task, max(metc, bmtc))
+	binToPushChan := make(chan browse.Task, bmtc)
+	metaToExtractChan := make(chan browse.Task, metc)
+	metaToConvertChan := make(chan metadata.PictureMetadata, metc)
+	docToPushChan := make(chan elasticsearch.EsDoc, metc)
 
 	wg := sync.WaitGroup{}
 	wg.Add(5)
@@ -86,7 +102,7 @@ func Run(c Config, input string) error {
 	}()
 
 	go func() { // metadata to doc
-		if err := internal.ConvertMetadataToEsDoc(ctx, metaToConvertChan, docToPushChan); err != nil {
+		if err := elasticsearch.ConvertMetadataToEsDoc(ctx, metaToConvertChan, docToPushChan); err != nil {
 			log.Error().Msgf("Error while converting metadata to Elasticsearch documents: %v", err)
 		}
 		wg.Done()
@@ -107,12 +123,12 @@ func Run(c Config, input string) error {
 	}()
 
 	go func() { // dispatch
-		internal.DispatchTasks(ctx, browseChan, binToPushChan, metaToExtractChan)
+		dispatch.DispatchTasks(ctx, browseChan, binToPushChan, metaToExtractChan)
 		wg.Done()
 	}()
 
 	// browse
-	if err := internal.BrowseImages(ctx, input, browseChan); err != nil {
+	if err := browse.BrowseImages(ctx, input, browseChan); err != nil {
 		log.Error().Msgf("Error while browsing input folder: %v", err)
 	}
 

@@ -1,4 +1,4 @@
-package internal
+package binary
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ func TestPusher_StatusCode(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			err := NewPusher(ts.URL).push("../testdata/picture.jpg", "myKey")
+			err := NewPusher(ts.URL).push("../../testdata/picture.jpg", "myKey")
 			assert.Equal(t, tc.expSuccess, err == nil)
 		})
 	}
@@ -43,7 +43,7 @@ func TestPusher_UnknownFile(t *testing.T) {
 
 
 func TestPusher_WrongUrl(t *testing.T) {
-	err := NewPusher("file:/tmp/").push("../testdata/picture.jpg", "myKey")
+	err := NewPusher("file:/tmp/").push("../../testdata/picture.jpg", "myKey")
 	t.Logf("err: %v", err)
 	assert.NotNil(t, err)
 }

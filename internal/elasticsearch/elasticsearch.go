@@ -1,16 +1,22 @@
-package internal
+package elasticsearch
 
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/barasher/picdexer/internal/common"
+	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -139,7 +145,7 @@ func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
 	return nil
 }
 
-func ConvertMetadataToEsDoc(ctx context.Context, in chan PictureMetadata, out chan EsDoc) error {
+func ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadata, out chan EsDoc) error {
 	defer close(out)
 	for {
 		select {
@@ -151,7 +157,7 @@ func ConvertMetadataToEsDoc(ctx context.Context, in chan PictureMetadata, out ch
 			}
 			id, err := getID(cur.SourceFile)
 			if err != nil {
-				log.Error().Str(logFileIdentifier, cur.SourceFile).Msgf("Error while building document Id: %v", err)
+				log.Error().Str(common.LogFileIdentifier, cur.SourceFile).Msgf("Error while building document Id: %v", err)
 				continue
 			}
 			out <- EsDoc{
@@ -164,4 +170,20 @@ func ConvertMetadataToEsDoc(ctx context.Context, in chan PictureMetadata, out ch
 		}
 	}
 	return nil
+}
+
+
+func getID(file string) (string, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return "", fmt.Errorf("Error while calculating ID for %v: %w", file, err)
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("Error while calculating ID for %v: %w", file, err)
+	}
+
+	return hex.EncodeToString(h.Sum(nil)) + "_" + filepath.Base(file), nil
 }

@@ -1,16 +1,13 @@
-package internal
+package metadata
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/barasher/picdexer/internal/browse"
 	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
-	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,7 +30,6 @@ const (
 	isoKey         = "ISO"
 
 	srcDateFormat = "2006:01:02 15:04:05"
-
 )
 
 var defaultDate = uint64(0)
@@ -92,7 +88,7 @@ func (ext *MetadataExtractor) Close() error {
 	return nil
 }
 
-func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan chan Task, outPicMetaChan chan PictureMetadata) error {
+func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan chan browse.Task, outPicMetaChan chan PictureMetadata) error {
 	wg := sync.WaitGroup{}
 	wg.Add(ext.threadCount)
 
@@ -109,7 +105,7 @@ func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan ch
 					}
 					picMeta, err := ext.extractMetadataFromFile(ctx, task.Path, task.Info)
 					if err != nil {
-						log.Error().Str(logFileIdentifier, task.Path).Msgf("conversion error: %v", err)
+						log.Error().Str(common.LogFileIdentifier, task.Path).Msgf("conversion error: %v", err)
 					} else {
 						outPicMetaChan <- picMeta
 					}
@@ -125,7 +121,7 @@ func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan ch
 }
 
 func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, f string, fInfo os.FileInfo) (PictureMetadata, error) {
-	log.Info().Str(logFileIdentifier, f).Msg("Extracting metadata...")
+	log.Info().Str(common.LogFileIdentifier, f).Msg("Extracting metadata...")
 	pic := PictureMetadata{}
 
 	metas := ext.exif.ExtractMetadata(f)
@@ -158,28 +154,13 @@ func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, f str
 	return pic, nil
 }
 
-func getID(file string) (string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return "", fmt.Errorf("Error while calculating ID for %v: %w", file, err)
-	}
-	defer f.Close()
-
-	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", fmt.Errorf("Error while calculating ID for %v: %w", file, err)
-	}
-
-	return hex.EncodeToString(h.Sum(nil)) + "_" + filepath.Base(file), nil
-}
-
 func getString(m exif.FileMetadata, k string) *string {
 	v, err := m.GetString(k)
 	switch {
 	case err == nil:
 		return &v
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as string: %v", k, err)
+		log.Warn().Str(common.LogFileIdentifier, m.File).Msgf("error while extracting key %v as string: %v", k, err)
 	}
 	return nil
 }
@@ -190,7 +171,7 @@ func getStrings(m exif.FileMetadata, k string) []string {
 	case err == nil:
 		return v
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as string slice: %v", k, err)
+		log.Warn().Str(common.LogFileIdentifier, m.File).Msgf("error while extracting key %v as string slice: %v", k, err)
 	}
 	return nil
 }
@@ -202,7 +183,7 @@ func getInt64(m exif.FileMetadata, k string) *uint64 {
 		uv := uint64(v)
 		return &uv
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as int: %v", k, err)
+		log.Warn().Str(common.LogFileIdentifier, m.File).Msgf("error while extracting key %v as int: %v", k, err)
 	}
 	return nil
 }
@@ -213,7 +194,7 @@ func getFloat64(m exif.FileMetadata, k string) *float64 {
 	case err == nil:
 		return &v
 	case !errors.Is(err, exif.ErrKeyNotFound):
-		log.Warn().Str(logFileIdentifier, m.File).Msgf("error while extracting key %v as float: %v", k, err)
+		log.Warn().Str(common.LogFileIdentifier, m.File).Msgf("error while extracting key %v as float: %v", k, err)
 	}
 	return nil
 }
@@ -221,7 +202,7 @@ func getFloat64(m exif.FileMetadata, k string) *float64 {
 func getDate(m exif.FileMetadata, k string) *uint64 {
 	if strDate := getString(m, k); strDate != nil {
 		if d, err := time.Parse(srcDateFormat, *strDate); err != nil {
-			log.Warn().Str(logFileIdentifier, m.File).Msgf("error while parsing date from field %v (%v): %v", k, *strDate, err)
+			log.Warn().Str(common.LogFileIdentifier, m.File).Msgf("error while parsing date from field %v (%v): %v", k, *strDate, err)
 			return &defaultDate
 		} else {
 			d2 := uint64(d.Unix() * 1000)
@@ -235,7 +216,7 @@ func getGPS(m exif.FileMetadata, k string) *string {
 	if rawGPS := getString(m, k); rawGPS != nil {
 		lat, long, err := convertGPSCoordinates(*rawGPS)
 		if err != nil {
-			log.Warn().Str(logFileIdentifier, m.File).Msgf("error while parsing GPS coordinates from field %v (%v): %v", k, *rawGPS, err)
+			log.Warn().Str(common.LogFileIdentifier, m.File).Msgf("error while parsing GPS coordinates from field %v (%v): %v", k, *rawGPS, err)
 			return nil
 		}
 		gps := fmt.Sprintf("%v,%v", lat, long)

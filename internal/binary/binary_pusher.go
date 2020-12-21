@@ -3,7 +3,6 @@ package binary
 import (
 	"bytes"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,13 +15,13 @@ type pusherInterface interface {
 }
 
 type pusher struct {
-	conf       conf.BinaryConf
+	url string
 	httpClient *http.Client
 }
 
-func NewPusher(c conf.BinaryConf) pusher {
+func NewPusher(url string) pusher {
 	p := pusher{
-		conf: c,
+		url:url,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -50,7 +49,7 @@ func (p pusher) push(f string, key string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", p.conf.Url, body)
+	req, err := http.NewRequest("POST", p.url, body)
 	if err != nil {
 		return err
 	}

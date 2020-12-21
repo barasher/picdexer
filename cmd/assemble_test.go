@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -43,8 +44,14 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	err = Run(c, "../testdata/")
+	err = Run(context.Background(), c, []string{"../testdata/"})
 	assert.Nil(t, err)
 	assert.True(t, esDocPushed)
 	assert.True(t, binPushed)
+}
+
+func TestMax(t *testing.T) {
+	assert.Equal(t, 2, max(1,2))
+	assert.Equal(t, 2, max(2,1))
+	assert.Equal(t, 2, max(2,2))
 }

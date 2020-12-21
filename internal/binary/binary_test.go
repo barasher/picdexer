@@ -3,127 +3,109 @@ package binary
 import (
 	"context"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
+	"github.com/barasher/picdexer/internal/browse"
 	"github.com/stretchr/testify/assert"
-	"reflect"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 )
 
-func TestNewStorer(t *testing.T) {
-	var tcs = []struct {
-		tcID       string
-		inConf     conf.BinaryConf
-		inPush     bool
-		expSuccess bool
-		expResizer string
-		expPusher  string
-	}{
-		{"Nominal_1", conf.BinaryConf{}, false, true, "binary.nopResizer", "binary.nopPusher"},
-		{"Nominal_2", conf.BinaryConf{Height: 1, Width: 1}, false, true, "binary.resizer", "binary.nopPusher"},
-		{"Nominal_3", conf.BinaryConf{}, true, true, "binary.nopResizer", "binary.pusher"},
-		{"Nominal_4", conf.BinaryConf{Height: 1, Width: 1}, true, true, "binary.resizer", "binary.pusher"},
-		{"MissingDimension", conf.BinaryConf{Width: 1}, true, false, "", ""},
-	}
+func TestNewBinaryManager_ErrorOnOpts(t *testing.T) {
+	_, err := NewBinaryManager(2,func(*BinaryManager) error {
+		return fmt.Errorf("anError")
+	})
+	assert.NotNil(t, err)
+}
 
+func TestNewBinaryManager(t *testing.T) {
+	var tcs = []struct {
+		inTC   int
+		expOk bool
+	}{
+		{-1, false},
+		{0, false},
+		{2, true},
+	}
 	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			s, err := NewStorer(tc.inConf, tc.inPush)
-			assert.Equal(t, tc.expSuccess, err == nil)
-			if tc.expSuccess {
-				assert.Equal(t, tc.expResizer, reflect.TypeOf(s.resizer).String())
-				assert.Equal(t, tc.expPusher, reflect.TypeOf(s.pusher).String())
+		t.Run(strconv.Itoa(tc.inTC), func(t *testing.T) {
+			bm, err := NewBinaryManager(tc.inTC)
+			if tc.expOk {
+				assert.Nil(t, err)
+				assert.Equal(t, tc.inTC, bm.threadCount)
+			} else {
+				assert.NotNil(t, err)
 			}
 		})
 	}
 }
 
-type resizerMock struct {
-	f   string
-	k   string
-	err error
-}
-
-func (r resizerMock) resize(ctx context.Context, f string, o string) (string, string, error) {
-	return r.f, r.k, r.err
-}
-
-type pusherMock struct {
-	err error
-}
-
-func (p pusherMock) push(bin string, key string) error {
-	return p.err
-}
-
-func TestStoreFolder(t *testing.T) {
+func TestBinaryManagerDoResize(t *testing.T) {
 	var tcs = []struct {
-		tcID       string
-		inResizerI resizerInterface
-		inPushI    pusherInterface
+		tcID  string
+		inW   int
+		inH   int
+		expOk bool
 	}{
-		{
-			"Nominal",
-			resizerMock{f: "../../testdata/picture.jpg", k: "myKey"},
-			pusherMock{},
-		}, {
-			"FailResize",
-			resizerMock{err: fmt.Errorf("error")},
-			pusherMock{},
-		}, {
-			"FailPush",
-			resizerMock{f: "../../testdata/picture.jpg", k: "myKey"},
-			pusherMock{err: fmt.Errorf("error")},
-		},
+		{"1x2", 1, 2, true},
+		{"1x0", 1, 0, false},
+		{"0x1", 0, 1, false},
+		{"0x0", 0, 0, false},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			s := Storer{
-				resizer: tc.inResizerI,
-				pusher:  tc.inPushI,
+			bm, err := NewBinaryManager(4, BinaryManagerDoResize(tc.inW, tc.inH))
+			if tc.expOk {
+				assert.Nil(t, err)
+				resizer, ok := bm.resizer.(resizer)
+				assert.True(t, ok)
+				assert.Equal(t, "1x2", resizer.dimensions)
+			} else {
+				assert.NotNil(t, err)
 			}
-			s.StoreFolder(context.TODO(), "../../testdata/picture.jpg", "")
-		})
-	}
-
-}
-
-func TestResizingThreadCount(t *testing.T) {
-	var tcs = []struct {
-		tcID     string
-		inConfValue      int
-		expValue int
-	}{
-		{"-1", -1, defaultResizingThreadCount},
-		{"0", 0, defaultResizingThreadCount},
-		{"5", 5,5},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			c := conf.BinaryConf{ResizingThreadCount:tc.inConfValue}
-			s := Storer{conf: c}
-			assert.Equal(t, tc.expValue, s.resizingThreadCount())
 		})
 	}
 }
 
-func TestToResizeChannelSize(t *testing.T) {
-	var tcs = []struct {
-		tcID     string
-		inConfValue      int
-		expValue int
-	}{
-		{"-1", -1, defaultToResizeChannelSize},
-		{"0", 0, defaultToResizeChannelSize},
-		{"5", 5,5},
-	}
+func TestBinaryManagerDoPush(t *testing.T) {
+	bm, err := NewBinaryManager(4, BinaryManagerDoPush("anUrl"))
+	assert.Nil(t, err)
+	pusher, ok := bm.pusher.(pusher)
+	assert.True(t, ok)
+	assert.Equal(t, "anUrl", pusher.url)
+}
 
-	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			c := conf.BinaryConf{ToResizeChannelSize:tc.inConfValue}
-			s := Storer{conf: c}
-			assert.Equal(t, tc.expValue, s.toResizeChannelSize())
-		})
-	}
+type mockSubStore struct {
+	resized bool
+	pushed  bool
+}
+
+func (m *mockSubStore) resize(ctx context.Context, f string, o string) (string, string, error) {
+	m.resized = true
+	return f, filepath.Base(f), nil
+}
+
+func (m *mockSubStore) push(bin string, key string) error {
+	m.pushed = true
+	return nil
+}
+
+func TestStore(t *testing.T) {
+	mock := &mockSubStore{}
+	bm, err := NewBinaryManager(4)
+	assert.Nil(t, err)
+	bm.resizer = mock
+	bm.pusher = mock
+
+	f := "../../testdata/picture.jpg"
+	fInfo, err := os.Stat(f)
+	assert.Nil(t, err)
+	in := make(chan browse.Task, 1)
+	in <- browse.Task{Path: f, Info: fInfo}
+	close(in)
+
+	assert.Nil(t, bm.Store(context.TODO(), in, ""))
+	assert.True(t, mock.resized)
+	assert.True(t, mock.pushed)
 }

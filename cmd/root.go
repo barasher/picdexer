@@ -18,9 +18,15 @@ var (
 		Short: "Picture metadata",
 	}
 	input    []string
-	output   string
 	importID string
 	confFile string
+
+	/*// full
+	doNotExtractMetadata bool
+	doNotIndex           bool
+	doNotUpload          bool
+	doNotResize          bool*/
+
 )
 
 func Execute() {

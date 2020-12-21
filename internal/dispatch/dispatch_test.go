@@ -1,19 +1,20 @@
-package internal
+package dispatch
 
 import (
 	"context"
+	"github.com/barasher/picdexer/internal/browse"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 )
 
 func TestDispatchTasks(t *testing.T) {
-	in := make(chan Task, 2)
-	out1 := make(chan Task, 2)
-	out2 := make(chan Task, 2)
+	in := make(chan browse.Task, 2)
+	out1 := make(chan browse.Task, 2)
+	out2 := make(chan browse.Task, 2)
 
-	in <- Task{		Path: "p1"	}
-	in <- Task{		Path: "p2"	}
+	in <- browse.Task{		Path: "p1"	}
+	in <- browse.Task{		Path: "p2"	}
 	close(in)
 
 	wg := sync.WaitGroup{}

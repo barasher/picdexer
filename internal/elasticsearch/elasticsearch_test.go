@@ -1,8 +1,9 @@
-package internal
+package elasticsearch
 
 import (
 	"context"
 	"fmt"
+	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -75,7 +76,7 @@ func buildEsDoc(id string, filename string) EsDoc {
 	d := EsDoc{}
 	d.Header.Index = "idx"
 	d.Header.ID = id
-	d.Document = PictureMetadata{FileName: filename}
+	d.Document = metadata.PictureMetadata{FileName: filename}
 	return d
 }
 
@@ -181,12 +182,12 @@ func ExamplePrint() {
 }
 
 func TestConvertMetadataToEsDoc(t *testing.T) {
-	in := make(chan PictureMetadata, 2)
-	in <- PictureMetadata{
+	in := make(chan metadata.PictureMetadata, 2)
+	in <- metadata.PictureMetadata{
 		FileName:   "picture.jpg",
-		SourceFile: "../testdata/picture.jpg",
+		SourceFile: "../../testdata/picture.jpg",
 	}
-	in <- PictureMetadata{
+	in <- metadata.PictureMetadata{
 		FileName:   "nonExisting.jpg",
 		SourceFile: "../testdata/nonExisting.jpg",
 	}
@@ -201,10 +202,35 @@ func TestConvertMetadataToEsDoc(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, len(docs))
-	doc, ok := docs[0].Document.(PictureMetadata)
+	doc, ok := docs[0].Document.(metadata.PictureMetadata)
 	assert.True(t, ok)
-	assert.Equal(t, "../testdata/picture.jpg", doc.SourceFile)
+	assert.Equal(t, "../../testdata/picture.jpg", doc.SourceFile)
 	assert.Equal(t, "picture.jpg", doc.FileName)
 	assert.Equal(t, "ec3d25618be7af41c6824855f0f42c73_picture.jpg", docs[0].Header.ID)
 	assert.Equal(t, "picdexer", docs[0].Header.Index)
+}
+
+func TestGetID(t *testing.T) {
+	var tcs = []struct {
+		tcID  string
+		inF   string
+		expOK bool
+		expID string
+	}{
+		{"nominal", "../../testdata/picture.jpg", true, "ec3d25618be7af41c6824855f0f42c73_picture.jpg"},
+		{"nonExisting", "nonExisting", false, ""},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.tcID, func(t *testing.T) {
+			i, err := getID(tc.inF)
+			if tc.expOK {
+				assert.Nil(t, err)
+				assert.Equal(t, tc.expID, i)
+			} else {
+				assert.NotNil(t, err)
+			}
+		})
+	}
+
 }

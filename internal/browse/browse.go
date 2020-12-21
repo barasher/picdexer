@@ -1,7 +1,8 @@
-package internal
+package browse
 
 import (
 	"context"
+	"fmt"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog/log"
 	"os"
@@ -16,22 +17,28 @@ type Task struct {
 	Info os.FileInfo
 }
 
-func BrowseImages(ctx context.Context, dir string, outFileChan chan Task) error {
+func BrowseImages(ctx context.Context, dirList []string, outFileChan chan Task) error {
 	defer close(outFileChan)
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			if isPicture(path) {
-				outFileChan <- Task{
-					Path: path,
-					Info: info,
+	for _, curDir := range dirList {
+		err := filepath.Walk(curDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				if isPicture(path) {
+					outFileChan <- Task{
+						Path: path,
+						Info: info,
+					}
 				}
 			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("error while browsing %v: %w", curDir, err)
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func isPicture(path string) bool {
