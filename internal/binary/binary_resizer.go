@@ -35,7 +35,6 @@ type resizer struct {
 	dimensions string
 }
 
-
 func (r resizer) resize(ctx context.Context, f string, d string) (string, string, error) {
 	outFilename, err := getOutputFilename(f)
 	if err != nil {
@@ -58,7 +57,7 @@ func NewResizer(w, h int) resizer {
 type nopResizer struct {
 }
 
-func (r nopResizer) resize(ctx context.Context, f string, d string) (string, string,  error) {
+func (r nopResizer) resize(ctx context.Context, f string, d string) (string, string, error) {
 	outFilename, err := getOutputFilename(f)
 	if err != nil {
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
@@ -69,4 +68,3 @@ func (r nopResizer) resize(ctx context.Context, f string, d string) (string, str
 func NewNopResizer() nopResizer {
 	return nopResizer{}
 }
-

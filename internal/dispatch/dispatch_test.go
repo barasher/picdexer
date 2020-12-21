@@ -13,15 +13,15 @@ func TestDispatchTasks(t *testing.T) {
 	out1 := make(chan browse.Task, 2)
 	out2 := make(chan browse.Task, 2)
 
-	in <- browse.Task{		Path: "p1"	}
-	in <- browse.Task{		Path: "p2"	}
+	in <- browse.Task{Path: "p1"}
+	in <- browse.Task{Path: "p2"}
 	close(in)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	dispatched1 := []string{}
-	go func(){
+	go func() {
 		for cur := range out1 {
 			dispatched1 = append(dispatched1, cur.Path)
 		}
@@ -29,7 +29,7 @@ func TestDispatchTasks(t *testing.T) {
 	}()
 
 	dispatched2 := []string{}
-	go func(){
+	go func() {
 		for cur := range out2 {
 			dispatched2 = append(dispatched2, cur.Path)
 		}

@@ -41,7 +41,6 @@ func TestPusher_UnknownFile(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-
 func TestPusher_WrongUrl(t *testing.T) {
 	err := NewPusher("file:/tmp/").push("../../testdata/picture.jpg", "myKey")
 	t.Logf("err: %v", err)

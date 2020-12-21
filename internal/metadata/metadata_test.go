@@ -268,8 +268,6 @@ func TestGetGPS(t *testing.T) {
 	}
 }
 
-
-
 func TestNewMetadataExtractor(t *testing.T) {
 	var tcs = []struct {
 		inTC  int
@@ -294,7 +292,7 @@ func TestNewMetadataExtractor(t *testing.T) {
 }
 
 func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
-	_, err := NewMetadataExtractor(4,func(*MetadataExtractor)error {
+	_, err := NewMetadataExtractor(4, func(*MetadataExtractor) error {
 		return fmt.Errorf("anError")
 	})
 	assert.NotNil(t, err)

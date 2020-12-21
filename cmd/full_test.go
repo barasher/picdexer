@@ -34,13 +34,13 @@ func TestRun(t *testing.T) {
 
 	c := Config{
 		Elasticsearch: ElasticsearchConf{
-			Url:         esServer.URL,
+			Url: esServer.URL,
 		},
-		Binary:        BinaryConf{
-			Url:         binServer.URL,
-			Height:      50,
-			Width:       70,
-			WorkingDir:  resizeDir,
+		Binary: BinaryConf{
+			Url:        binServer.URL,
+			Height:     50,
+			Width:      70,
+			WorkingDir: resizeDir,
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestMax(t *testing.T) {
-	assert.Equal(t, 2, max(1,2))
-	assert.Equal(t, 2, max(2,1))
-	assert.Equal(t, 2, max(2,2))
+	assert.Equal(t, 2, max(1, 2))
+	assert.Equal(t, 2, max(2, 1))
+	assert.Equal(t, 2, max(2, 2))
 }

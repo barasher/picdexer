@@ -172,7 +172,6 @@ func ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadat
 	return nil
 }
 
-
 func getID(file string) (string, error) {
 	f, err := os.Open(file)
 	if err != nil {

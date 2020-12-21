@@ -23,7 +23,7 @@ type BinaryConf struct {
 	Height      int    `json:"height"`
 	Width       int    `json:"width"`
 	ThreadCount int    `json:"threadCount"`
-	WorkingDir string `json:"workingDir"`
+	WorkingDir  string `json:"workingDir"`
 }
 
 func LoadConf(f string) (Config, error) {

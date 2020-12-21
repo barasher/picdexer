@@ -7,9 +7,9 @@ import (
 )
 
 func TestBrowse(t *testing.T) {
-	taskChan := make (chan Task, 10)
+	taskChan := make(chan Task, 10)
 	files := []string{}
-	go func(){
+	go func() {
 		assert.Nil(t, BrowseImages(context.Background(), []string{"../../testdata"}, taskChan))
 	}()
 	for cur := range taskChan {

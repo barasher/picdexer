@@ -46,5 +46,5 @@ func isPicture(path string) bool {
 	if err != nil {
 		log.Warn().Str("file", path).Msgf("Error while getting mime-type for %v: %v", path, err)
 	}
-	return err == nil &&  strings.HasPrefix(mime.String(), imageMimeTypePrefix)
+	return err == nil && strings.HasPrefix(mime.String(), imageMimeTypePrefix)
 }

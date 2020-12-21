@@ -6,22 +6,19 @@ import (
 	"testing"
 )
 
-
-
 func TestSetLoggingLevel(t *testing.T) {
 	var tcs = []struct {
-		tcID   string
-		preLvl  zerolog.Level
-		inLvl string
+		tcID       string
+		preLvl     zerolog.Level
+		inLvl      string
 		expSuccess bool
-		expLvl zerolog.Level
+		expLvl     zerolog.Level
 	}{
 		{"debug", zerolog.InfoLevel, "debug", true, zerolog.DebugLevel},
 		{"info", zerolog.DebugLevel, "info", true, zerolog.InfoLevel},
 		{"warn", zerolog.DebugLevel, "warn", true, zerolog.WarnLevel},
 		{"undefined", zerolog.DebugLevel, "undefined", false, zerolog.WarnLevel},
 		{"empty", zerolog.DebugLevel, "", true, zerolog.DebugLevel},
-
 	}
 
 	preTestLvl := zerolog.GlobalLevel()

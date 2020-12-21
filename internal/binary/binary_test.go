@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewBinaryManager_ErrorOnOpts(t *testing.T) {
-	_, err := NewBinaryManager(2,func(*BinaryManager) error {
+	_, err := NewBinaryManager(2, func(*BinaryManager) error {
 		return fmt.Errorf("anError")
 	})
 	assert.NotNil(t, err)
@@ -20,7 +20,7 @@ func TestNewBinaryManager_ErrorOnOpts(t *testing.T) {
 
 func TestNewBinaryManager(t *testing.T) {
 	var tcs = []struct {
-		inTC   int
+		inTC  int
 		expOk bool
 	}{
 		{-1, false},

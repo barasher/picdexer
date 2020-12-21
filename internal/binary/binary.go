@@ -3,8 +3,8 @@ package binary
 import (
 	"context"
 	"fmt"
-	"github.com/barasher/picdexer/internal/common"
 	"github.com/barasher/picdexer/internal/browse"
+	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"os"
@@ -17,7 +17,7 @@ type BinaryManager struct {
 	pusher      pusherInterface
 }
 
-func NewBinaryManager(threadCount int, opts ...func(*BinaryManager)error) (*BinaryManager, error){
+func NewBinaryManager(threadCount int, opts ...func(*BinaryManager) error) (*BinaryManager, error) {
 	if threadCount <= 0 {
 		return nil, fmt.Errorf("threadCount should be >0 (%v)", threadCount)
 	}
@@ -27,7 +27,7 @@ func NewBinaryManager(threadCount int, opts ...func(*BinaryManager)error) (*Bina
 		pusher:      NewNopPusher(),
 	}
 	for _, cur := range opts {
-		if err := cur(bm) ; err != nil {
+		if err := cur(bm); err != nil {
 			return nil, fmt.Errorf("error while creating EsPusher: %w", err)
 		}
 	}
@@ -36,17 +36,17 @@ func NewBinaryManager(threadCount int, opts ...func(*BinaryManager)error) (*Bina
 
 func BinaryManagerDoResize(w, h int) func(*BinaryManager) error {
 	return func(bm *BinaryManager) error {
-		if w==0 || h == 0 {
+		if w == 0 || h == 0 {
 			return fmt.Errorf("neither width (%v) nor height (%v) can equals 0", w, h)
 		}
-		bm.resizer= NewResizer(w, h)
+		bm.resizer = NewResizer(w, h)
 		return nil
 	}
 }
 
 func BinaryManagerDoPush(url string) func(*BinaryManager) error {
 	return func(bm *BinaryManager) error {
-		bm.pusher= NewPusher(url)
+		bm.pusher = NewPusher(url)
 		return nil
 	}
 }

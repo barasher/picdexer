@@ -16,8 +16,8 @@ func DispatchTasks(ctx context.Context, inFileChan chan browse.Task, outIdxChan 
 				close(outBinChan)
 				return
 			}
-			outIdxChan<-t
-			outBinChan<-t
+			outIdxChan <- t
+			outBinChan <- t
 		}
 	}
 }

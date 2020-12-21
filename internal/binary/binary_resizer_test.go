@@ -40,7 +40,7 @@ func TestResizer_Nominal(t *testing.T) {
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
 
-	r := NewResizer(100,100)
+	r := NewResizer(100, 100)
 	bin, key, err := r.resize(context.TODO(), "../../testdata/picture.jpg", outDir)
 	assert.Nil(t, err)
 	assert.Equal(t, filepath.Join(outDir, "ec3d25618be7af41c6824855f0f42c73_picture.jpg"), bin)
@@ -53,7 +53,7 @@ func TestResizer_NonExistingSource(t *testing.T) {
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
 
-	r := NewResizer(100,100)
+	r := NewResizer(100, 100)
 	_, _, err = r.resize(context.TODO(), "../testdata/nonExisting.jpg", outDir)
 	assert.NotNil(t, err)
 }
@@ -64,7 +64,7 @@ func TestResizer_FailOnResizing(t *testing.T) {
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
 
-	r := NewResizer(100,100)
+	r := NewResizer(100, 100)
 	_, _, err = r.resize(context.TODO(), "../../testdata/picture.jpg", "/blabliblu/")
 	t.Logf("error: %v", err)
 	assert.NotNil(t, err)

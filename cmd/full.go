@@ -14,6 +14,12 @@ import (
 	"sync"
 )
 
+const (
+	defaultMetadataThreadCount = 4
+	defaultEsBulkSize          = 30
+	defaultBinaryThreadCount   = 4
+)
+
 var (
 	fullCmd = &cobra.Command{
 		Use:   "full",
@@ -50,12 +56,6 @@ func full(cmd *cobra.Command, args []string) error {
 	return Run(ctx, c, input)
 }
 
-const (
-	defaultMetadataThreadCount = 4
-	defaultEsBulkSize          = 30
-	defaultBinaryThreadCount   = 4
-)
-
 func max(v1, v2 int) int {
 	if v1 < v2 {
 		return v2
@@ -85,7 +85,7 @@ func buildMetadataExtractor(c Config) (MetadataExtractorInterface, int, error) {
 	return me, tc, err
 }
 
-func  buildEsPusher(c Config) (EsPusherInterface, error) {
+func buildEsPusher(c Config) (EsPusherInterface, error) {
 	bs := c.Elasticsearch.BulkSize
 	if bs == 0 {
 		bs = defaultEsBulkSize

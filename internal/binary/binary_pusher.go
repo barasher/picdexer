@@ -15,13 +15,13 @@ type pusherInterface interface {
 }
 
 type pusher struct {
-	url string
+	url        string
 	httpClient *http.Client
 }
 
 func NewPusher(url string) pusher {
 	p := pusher{
-		url:url,
+		url: url,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
