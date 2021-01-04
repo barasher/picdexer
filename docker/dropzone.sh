@@ -1,2 +1,2 @@
 #!/bin/bash
-/root/picdexer dropzone -c /etc/picdexer/picdexer.json
+/root/picdexer filewatcher -c /etc/picdexer/picdexer.json

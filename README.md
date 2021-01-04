@@ -200,5 +200,5 @@ This command watches a folder, index, stores pictures and delete files.
 docker run --rm
   -v [hostSourceFolder]:/data/picdexer/in
   -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
-  barasher/picdexer:1.0.0 ./dropzone.sh
+  barasher/picdexer:1.0.0 filewatcher
 ```

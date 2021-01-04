@@ -10,6 +10,8 @@ type Config struct {
 	LogLevel      string            `json:"loggingLevel"`
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
 	Binary        BinaryConf        `json:"binary"`
+	Dropzone      DropzoneConf      `json:"filewatcher"`
+	Kibana        KibanaConf        `json:"kibana"`
 }
 
 type ElasticsearchConf struct {
@@ -24,6 +26,15 @@ type BinaryConf struct {
 	Width       int    `json:"width"`
 	ThreadCount int    `json:"threadCount"`
 	WorkingDir  string `json:"workingDir"`
+}
+
+type DropzoneConf struct {
+	Root   string `json:"root"`
+	Period string `json:"period"`
+}
+
+type KibanaConf struct {
+	Url string `json:"url"`
 }
 
 func LoadConf(f string) (Config, error) {
