@@ -73,11 +73,17 @@ func TestPushToEs_BadHttpStatus(t *testing.T) {
 }
 
 func buildEsDoc(id string, filename string) EsDoc {
-	d := EsDoc{}
-	d.Header.Index = "idx"
-	d.Header.ID = id
-	d.Document = metadata.PictureMetadata{FileName: filename}
-	return d
+	return EsDoc{
+		Header: EsHeader{
+			Index: EsHeaderIndex{
+				Index: "idx",
+				ID:    id,
+			},
+		},
+		Document: metadata.PictureMetadata{
+			FileName: filename,
+		},
+	}
 }
 
 func TestPush_Nominal(t *testing.T) {
@@ -105,11 +111,11 @@ func TestPush_Nominal(t *testing.T) {
 
 	assert.Nil(t, pusher.Push(context.TODO(), inChan))
 	assert.Equal(t, 2, len(collectedBodies))
-	assert.Equal(t, "{\"_index\":\"idx\",\"_id\":\"id1\"}\n"+
+	assert.Equal(t, "{\"index\":{\"_index\":\"idx\",\"_id\":\"id1\"}}\n"+
 		"{\"FileName\":\"f1.jpg\",\"Folder\":\"\",\"ImportID\":\"\",\"FileSize\":0}\n"+
-		"{\"_index\":\"idx\",\"_id\":\"id2\"}\n"+
+		"{\"index\":{\"_index\":\"idx\",\"_id\":\"id2\"}}\n"+
 		"{\"FileName\":\"f2.jpg\",\"Folder\":\"\",\"ImportID\":\"\",\"FileSize\":0}\n", collectedBodies[0])
-	assert.Equal(t, "{\"_index\":\"idx\",\"_id\":\"id3\"}\n"+
+	assert.Equal(t, "{\"index\":{\"_index\":\"idx\",\"_id\":\"id3\"}}\n"+
 		"{\"FileName\":\"f3.jpg\",\"Folder\":\"\",\"ImportID\":\"\",\"FileSize\":0}\n", collectedBodies[1])
 }
 
@@ -173,11 +179,11 @@ func ExamplePrint() {
 	}
 
 	// Output:
-	// {"_index":"idx","_id":"id1"}
+	// {"index":{"_index":"idx","_id":"id1"}}
 	// {"FileName":"f1.jpg","Folder":"","ImportID":"","FileSize":0}
-	// {"_index":"idx","_id":"id2"}
+	// {"index":{"_index":"idx","_id":"id2"}}
 	// {"FileName":"f2.jpg","Folder":"","ImportID":"","FileSize":0}
-	// {"_index":"idx","_id":"id3"}
+	// {"index":{"_index":"idx","_id":"id3"}}
 	// {"FileName":"f3.jpg","Folder":"","ImportID":"","FileSize":0}
 }
 
@@ -206,8 +212,8 @@ func TestConvertMetadataToEsDoc(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "../../testdata/picture.jpg", doc.SourceFile)
 	assert.Equal(t, "picture.jpg", doc.FileName)
-	assert.Equal(t, "ec3d25618be7af41c6824855f0f42c73_picture.jpg", docs[0].Header.ID)
-	assert.Equal(t, "picdexer", docs[0].Header.Index)
+	assert.Equal(t, "ec3d25618be7af41c6824855f0f42c73_picture.jpg", docs[0].Header.Index.ID)
+	assert.Equal(t, "picdexer", docs[0].Header.Index.Index)
 }
 
 func TestGetID(t *testing.T) {

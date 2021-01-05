@@ -32,6 +32,10 @@ type EsDoc struct {
 }
 
 type EsHeader struct {
+	Index EsHeaderIndex `json:"index"`
+}
+
+type EsHeaderIndex struct {
 	Index string `json:"_index"`
 	ID    string `json:"_id"`
 }
@@ -80,11 +84,11 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, co
 				return nil
 			}
 			if err := jsonEncoder.Encode(doc.Header); err != nil {
-				log.Debug().Str(esDocIdentifier, doc.Header.ID).Msgf("Header: %v", doc.Header)
+				log.Debug().Str(esDocIdentifier, doc.Header.Index.ID).Msgf("Header: %v", doc.Header)
 				return fmt.Errorf("error while encoding header: %w", err)
 			}
 			if err := jsonEncoder.Encode(doc.Document); err != nil {
-				log.Debug().Str(esDocIdentifier, doc.Header.ID).Msgf("Body: %v", doc.Document)
+				log.Debug().Str(esDocIdentifier, doc.Header.Index.ID).Msgf("Body: %v", doc.Document)
 				return fmt.Errorf("error while encoding body: %w", err)
 			}
 			bufferDocCount++
@@ -162,8 +166,10 @@ func ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadat
 			}
 			out <- EsDoc{
 				Header: EsHeader{
-					Index: "picdexer",
-					ID:    id,
+					Index: EsHeaderIndex{
+						Index: "picdexer",
+						ID:    id,
+					},
 				},
 				Document: cur,
 			}

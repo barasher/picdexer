@@ -44,7 +44,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	err = Run(context.Background(), c, []string{"../testdata/"}, false)
+	err = Run(context.Background(), c, []string{"../testdata/"})
 	assert.Nil(t, err)
 	assert.True(t, esDocPushed)
 	assert.True(t, binPushed)
