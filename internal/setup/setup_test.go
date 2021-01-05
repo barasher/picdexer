@@ -115,8 +115,6 @@ func TestSetupElasticsearch_FailOnPutMapping(t *testing.T) {
 }
 
 func TestSetupKibana_Nominal(t *testing.T) {
-	expBody, err := readFile(t, "./assets/kibana.ndjson")
-	assert.Nil(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/saved_objects/_import", r.URL.Path)
@@ -129,14 +127,11 @@ func TestSetupKibana_Nominal(t *testing.T) {
 		if err == nil {
 			defer f.Close()
 		}
-		b, err := ioutil.ReadAll(f)
-		assert.Nil(t, err)
-		assert.Equal(t, expBody, string(b))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
 
-	s, err := NewSetup("", ts.URL)
+	s, err := NewSetup("", ts.URL, "http://1.2.3.4:5")
 	assert.Nil(t, err)
 	assert.Nil(t, s.SetupKibana())
 }
@@ -147,13 +142,13 @@ func TestSetupKibana_WrongStatusCode(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	s, err := NewSetup("", ts.URL)
+	s, err := NewSetup("", ts.URL, "")
 	assert.Nil(t, err)
 	assert.NotNil(t, s.SetupKibana())
 }
 
 func TestSetupKibana_FailRequest(t *testing.T) {
-	s, err := NewSetup("", "blablabla")
+	s, err := NewSetup("", "blablabla", "")
 	assert.Nil(t, err)
 	assert.NotNil(t, s.SetupKibana())
 }

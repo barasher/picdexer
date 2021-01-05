@@ -26,7 +26,7 @@ type ESManagerInterface interface {
 type Setup struct {
 	esUrl  string
 	kibUrl string
-	FsUrl  string
+	fsUrl  string
 	fs     http.FileSystem
 }
 
@@ -41,7 +41,7 @@ func logReader(r io.Reader) error {
 
 func NewSetup(esUrl string, kibUrl string, fsUrl string) (*Setup, error) {
 	var err error
-	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, FsUrl:fsUrl}
+	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, fsUrl:fsUrl}
 	if s.fs, err = fs.New(); err != nil {
 		return nil, fmt.Errorf("error while loading fs: %w", err)
 	}
@@ -78,6 +78,10 @@ func (s *Setup) SetupElasticsearch() error {
 	return s.setupElasticsearch(m)
 }
 
+type kibTplVar struct {
+	FsUrl string
+}
+
 func (s *Setup) SetupKibana() error {
 	log.Info().Msgf("Pushing Kibana objects...")
 
@@ -105,7 +109,8 @@ func (s *Setup) SetupKibana() error {
 	}
 
 	// resolve template in multipart
-	if err := tpl.Execute(part, s) ; err != nil {
+	vars := kibTplVar{s.fsUrl}
+	if err := tpl.Execute(part, vars) ; err != nil {
 		return fmt.Errorf("error while resolving template: %w", err)
 	}
 	if err = mpart.Close(); err != nil {
