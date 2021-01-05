@@ -33,7 +33,7 @@ func configure(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
 
-	s, err := setup.NewSetup(c.Elasticsearch.Url, c.Kibana.Url)
+	s, err := setup.NewSetup(c.Elasticsearch.Url, c.Kibana.Url, c.Binary.Url)
 	if err != nil {
 		return fmt.Errorf("Setup initialization error: %w", err)
 	}

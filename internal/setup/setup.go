@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"text/template"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type ESManagerInterface interface {
 type Setup struct {
 	esUrl  string
 	kibUrl string
+	FsUrl  string
 	fs     http.FileSystem
 }
 
@@ -37,9 +39,9 @@ func logReader(r io.Reader) error {
 	return nil
 }
 
-func NewSetup(esUrl string, kibUrl string) (*Setup, error) {
+func NewSetup(esUrl string, kibUrl string, fsUrl string) (*Setup, error) {
 	var err error
-	s := &Setup{esUrl: esUrl, kibUrl: kibUrl}
+	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, FsUrl:fsUrl}
 	if s.fs, err = fs.New(); err != nil {
 		return nil, fmt.Errorf("error while loading fs: %w", err)
 	}
@@ -79,25 +81,38 @@ func (s *Setup) SetupElasticsearch() error {
 func (s *Setup) SetupKibana() error {
 	log.Info().Msgf("Pushing Kibana objects...")
 
+	// parse template
 	r, err := s.fs.Open("/kibana.ndjson")
 	if err != nil {
 		return fmt.Errorf("error while reading kibana saved objects: %w", err)
 	}
 	defer r.Close()
+	strTpl, err  := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("error while reading template: %w", err)
+	}
+	tpl, err := template.New("tpl").Delims("{{{", "}}}").Parse(string(strTpl))
+	if err != nil {
+		return fmt.Errorf("error while parsing template: %w", err)
+	}
 
+	// create multipart
 	body := new(bytes.Buffer)
 	mpart := multipart.NewWriter(body)
 	part, err := mpart.CreateFormFile("file", "kibana.ndjson")
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(part, r); err != nil {
-		return err
+
+	// resolve template in multipart
+	if err := tpl.Execute(part, s) ; err != nil {
+		return fmt.Errorf("error while resolving template: %w", err)
 	}
 	if err = mpart.Close(); err != nil {
 		return err
 	}
 
+	// query
 	req, err := http.NewRequest(http.MethodPost, s.kibUrl, body)
 	if err != nil {
 		return fmt.Errorf("error while creating http request: %w", err)
@@ -111,12 +126,12 @@ func (s *Setup) SetupKibana() error {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error while pushing mapping: %w", err)
 	}
 
+	// check response
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		if err := logReader(resp.Body); err != nil {
