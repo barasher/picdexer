@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/barasher/picdexer/internal/binary"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -54,4 +55,15 @@ func TestMax(t *testing.T) {
 	assert.Equal(t, 2, max(1, 2))
 	assert.Equal(t, 2, max(2, 1))
 	assert.Equal(t, 2, max(2, 2))
+}
+
+func TestBuildBinaryManager_Lazy(t *testing.T) {
+	bm, _, err := buildBinaryManager(
+		Config{
+			Binary: BinaryConf{
+				Url: "",
+			},
+		})
+	assert.Nil(t, err)
+	assert.IsType(t, binary.LazyBinaryManager{}, bm)
 }

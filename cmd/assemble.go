@@ -54,6 +54,10 @@ func buildEsPusher(c Config) (EsPusherInterface, error) {
 }
 
 func buildBinaryManager(c Config) (BinaryManagerInterface, int, error) {
+	if c.Binary.Url == "" { // lazy
+		return binary.LazyBinaryManager{}, 1, nil
+	}
+
 	opts := []func(manager *binary.BinaryManager) error{}
 	if c.Binary.Url != "" {
 		opts = append(opts, binary.BinaryManagerDoPush(c.Binary.Url))
