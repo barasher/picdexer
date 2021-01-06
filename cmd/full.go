@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/barasher/picdexer/internal/common"
 	"github.com/spf13/cobra"
@@ -37,6 +38,10 @@ func init() {
 }
 
 func full(cmd *cobra.Command, args []string) error {
+	return doFull(confFile, importID, input, Run)
+}
+
+func doFull(confFile string, importID string, inputs []string, runFct func( context.Context,  Config,  []string) error) error {
 	ctx := common.NewContext(importID)
 	var c Config
 	var err error
@@ -50,5 +55,5 @@ func full(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
 
-	return Run(ctx, c, input)
+	return runFct(ctx, c, inputs)
 }

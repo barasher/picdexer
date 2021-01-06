@@ -20,7 +20,20 @@ func init() {
 	rootCmd.AddCommand(setupCmd)
 }
 
+type setupInterface interface {
+	SetupElasticsearch() error
+	SetupKibana() error
+}
+
+func buildSetup(esUrl string, kibUrl string, fsUrl string) (setupInterface, error) {
+	return setup.NewSetup(esUrl, kibUrl, fsUrl)
+}
+
 func configure(cmd *cobra.Command, args []string) error {
+	return doConfigure(confFile, buildSetup)
+}
+
+func doConfigure(confFile string, setupBuilder func(string, string, string) (setupInterface, error)) error {
 	var c Config
 	var err error
 	if confFile != "" {
@@ -33,7 +46,7 @@ func configure(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
 
-	s, err := setup.NewSetup(c.Elasticsearch.Url, c.Kibana.Url, c.Binary.Url)
+	s, err := setupBuilder(c.Elasticsearch.Url, c.Kibana.Url, c.Binary.Url)
 	if err != nil {
 		return fmt.Errorf("Setup initialization error: %w", err)
 	}

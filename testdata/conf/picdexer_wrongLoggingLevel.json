@@ -1,0 +1,25 @@
+{
+  "loggingLevel": "blublublu",
+  "elasticsearch": {
+    "url": "http://localhost:9200",
+    "threadCount": 10,
+    "bulkSize": 200
+  },
+  "binary": {
+    "url": "http://localhost:8080",
+    "height":480,
+    "width":640,
+    "threadCount": 11,
+    "workingDir": "/tmp"
+  },
+  "kibana": {
+    "url": "http://localhost:5601"
+  },
+  "filewatcher": {
+    "root": "/tmp2",
+    "period": "20s"
+  }
+
+}
+
+
