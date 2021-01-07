@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 const resizedFileIdentifier = "resizedFile"
@@ -41,12 +42,23 @@ func (r resizer) resize(ctx context.Context, f string, d string) (string, string
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
 	}
 	outPath := filepath.Join(d, outFilename)
-	args := []string{f, "-quiet", "-resize", r.dimensions, outPath}
-	cmd := exec.Command("convert", args...)
-	b, _ := cmd.CombinedOutput()
-	if len(b) > 0 {
-		return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
+
+	if strings.Contains(strings.ToLower(f), ".cr2") {
+		args := fmt.Sprintf("exiftool %v -b -previewImage | convert - -size %v %v", f, r.dimensions, outPath)
+		cmd := exec.Command("bash", "-c", args)
+		b, _ := cmd.CombinedOutput()
+		if len(b) > 0 {
+			return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
+		}
+	} else {
+		args := []string{f, "-quiet", "-resize", r.dimensions, outPath}
+		cmd := exec.Command("convert", args...)
+		b, _ := cmd.CombinedOutput()
+		if len(b) > 0 {
+			return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
+		}
 	}
+
 	return outPath, outFilename, nil
 }
 

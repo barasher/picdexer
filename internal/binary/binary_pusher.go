@@ -44,6 +44,11 @@ func (p pusher) push(f string, key string) error {
 	defer input.Close()
 	if _, err := io.Copy(part, input); err != nil {
 		return err
+	} else {
+		input.Close()
+		if err := os.Remove(f); err != nil {
+			return err
+		}
 	}
 	if err = mpart.Close(); err != nil {
 		return err
