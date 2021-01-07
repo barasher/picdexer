@@ -79,11 +79,18 @@ func TestBinaryManagerDoPush(t *testing.T) {
 type mockSubStore struct {
 	resized bool
 	pushed  bool
+	cleanedUp bool
 }
 
 func (m *mockSubStore) resize(ctx context.Context, f string, o string) (string, string, error) {
 	m.resized = true
 	return f, filepath.Base(f), nil
+}
+
+
+func (m *mockSubStore) cleanup(ctx context.Context, f string) error {
+	m.cleanedUp = true
+	return nil
 }
 
 func (m *mockSubStore) push(bin string, key string) error {
@@ -108,4 +115,5 @@ func TestStore(t *testing.T) {
 	assert.Nil(t, bm.Store(context.TODO(), in, ""))
 	assert.True(t, mock.resized)
 	assert.True(t, mock.pushed)
+	assert.True(t, mock.cleanedUp)
 }

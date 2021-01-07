@@ -15,6 +15,7 @@ const resizedFileIdentifier = "resizedFile"
 
 type resizerInterface interface {
 	resize(ctx context.Context, f string, o string) (string, string, error)
+	cleanup(ctx context.Context, f string) error
 }
 
 func getOutputFilename(file string) (string, error) {
@@ -50,6 +51,10 @@ func (r resizer) resize(ctx context.Context, f string, d string) (string, string
 	return outPath, outFilename, nil
 }
 
+func (r resizer) cleanup(ctx context.Context, f string) error {
+	return os.Remove(f)
+}
+
 func NewResizer(w, h int) resizer {
 	return resizer{dimensions: fmt.Sprintf("%vx%v", w, h)}
 }
@@ -63,6 +68,10 @@ func (r nopResizer) resize(ctx context.Context, f string, d string) (string, str
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
 	}
 	return f, outFilename, nil
+}
+
+func (r nopResizer) cleanup(ctx context.Context, f string) error {
+	return nil
 }
 
 func NewNopResizer() nopResizer {

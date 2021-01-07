@@ -76,25 +76,29 @@ func (bm *BinaryManager) Store(ctx context.Context, inTaskChan chan browse.Task,
 					if !ok {
 						return
 					}
-
-					log.Info().Str(common.LogFileIdentifier, cur.Path).Msg("Resizing...")
-					outBin, outKey, err := bm.resizer.resize(ctx, cur.Path, dir)
-					if err != nil {
-						log.Error().Str(common.LogFileIdentifier, cur.Path).Msgf("Error while resizing: %v", err)
-						continue
-					}
-
-					log.Info().Str(common.LogFileIdentifier, cur.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msg("Pushing...")
-					err = bm.pusher.push(outBin, outKey)
-					if err != nil {
-						log.Error().Str(common.LogFileIdentifier, cur.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msgf("Error while pushing: %v", err)
-						continue
-					}
-
+					bm.store(ctx, cur, dir)
 				}
 			}
 		}(i)
 	}
 	wg.Wait()
 	return nil
+}
+
+func (bm *BinaryManager) store(ctx context.Context, task browse.Task, outDir string) {
+	log.Info().Str(common.LogFileIdentifier, task.Path).Msg("Resizing...")
+	outBin, outKey, err := bm.resizer.resize(ctx, task.Path, outDir)
+	if err != nil {
+		log.Error().Str(common.LogFileIdentifier, task.Path).Msgf("Error while resizing: %v", err)
+		return
+	}
+
+	defer bm.resizer.cleanup(ctx, outBin)
+
+	log.Info().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msg("Pushing...")
+	err = bm.pusher.push(outBin, outKey)
+	if err != nil {
+		log.Error().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msgf("Error while pushing: %v", err)
+		return
+	}
 }

@@ -23,6 +23,10 @@ func TestNopResizer_NonExisting(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestNopResizerCleanUp(t *testing.T) {
+	assert.Nil(t, NewNopResizer().cleanup(context.TODO(), "blabla"))
+}
+
 func TestGetOutputFilename_Nominal(t *testing.T) {
 	out, err := getOutputFilename("../../testdata/picture.jpg")
 	assert.Nil(t, err)
@@ -68,4 +72,18 @@ func TestResizer_FailOnResizing(t *testing.T) {
 	_, _, err = r.resize(context.TODO(), "../../testdata/picture.jpg", "/blabliblu/")
 	t.Logf("error: %v", err)
 	assert.NotNil(t, err)
+}
+
+func TestResizerCleanUp_Nominal(t *testing.T) {
+	f, err := ioutil.TempFile("/tmp", "TestNopResizer_CleanUp")
+	assert.Nil(t, err)
+	defer os.Remove(f.Name())
+	r := NewResizer(640, 480)
+	assert.Nil(t, r.cleanup(context.TODO(), f.Name()))
+	_, err = os.Stat("/path/to/whatever")
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestResizerCleanUp_NonExisting(t *testing.T) {
+	assert.NotNil(t, NewResizer(640, 480).cleanup(context.TODO(), "nonExistingFile"))
 }
