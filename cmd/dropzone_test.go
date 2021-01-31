@@ -9,20 +9,19 @@ import (
 	"time"
 )
 
-
 func TestFailOnWrongLoggingLevel(t *testing.T) {
 	assert.NotNil(t, dropzone2("../testdata/conf/picdexer_wrongLoggingLevel.json", "", simulateRun(true)))
 }
 
-func  TestFailOnConfLoad(t *testing.T) {
+func TestFailOnConfLoad(t *testing.T) {
 	assert.NotNil(t, dropzone2("nonExistingFile", "", simulateRun(true)))
 }
 
-func  TestFailOnRun(t *testing.T) {
+func TestFailOnRun(t *testing.T) {
 	d, err := ioutil.TempDir("/tmp/", "TestFailOnRun")
 	assert.Nil(t, err)
 	defer os.RemoveAll(d)
-	c := Config{Dropzone:DropzoneConf{
+	c := Config{Dropzone: DropzoneConf{
 		Root:   d,
 		Period: "10ms",
 	}}
@@ -31,7 +30,7 @@ func  TestFailOnRun(t *testing.T) {
 }
 
 func TestFailOnNonExistingRootFolder(t *testing.T) {
-	c := Config{Dropzone:DropzoneConf{
+	c := Config{Dropzone: DropzoneConf{
 		Root:   "/tmp123456789",
 		Period: "10ms",
 	}}
@@ -39,25 +38,24 @@ func TestFailOnNonExistingRootFolder(t *testing.T) {
 }
 
 func TestDoDropzone_UnparsablePeriod(t *testing.T) {
-	c := Config{Dropzone:DropzoneConf{
+	c := Config{Dropzone: DropzoneConf{
 		Root:   "/tmp",
 		Period: "blubla",
 	}}
 	assert.NotNil(t, doDropzone(context.Background(), c, simulateRun(true)))
 }
 
-
 func TestDropzone_nominal(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("/tmp", "TestWatch")
 	assert.Nil(t, err)
 	t.Logf("tmpDir: %v", tmpDir)
 	defer os.RemoveAll(tmpDir)
-	dest := tmpDir+"/picture.jpg"
+	dest := tmpDir + "/picture.jpg"
 	copy("../testdata/picture.jpg", dest)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	conf := Config{
-		Dropzone:      DropzoneConf{
+		Dropzone: DropzoneConf{
 			Root:   tmpDir,
 			Period: "10ms",
 		},
@@ -73,7 +71,7 @@ func TestDropzone_nominal(t *testing.T) {
 	}
 	go doDropzone(ctx, conf, fct)
 
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	cancel()
 
 	assert.ElementsMatch(t, []string{dest}, watched)
@@ -92,4 +90,3 @@ func copy(src, dest string) error {
 
 	return nil
 }
-

@@ -10,7 +10,7 @@ type Config struct {
 	LogLevel      string            `json:"loggingLevel"`
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
 	Binary        BinaryConf        `json:"binary"`
-	Dropzone      DropzoneConf      `json:"filewatcher"`
+	Dropzone      DropzoneConf      `json:"dropzone"`
 	Kibana        KibanaConf        `json:"kibana"`
 }
 

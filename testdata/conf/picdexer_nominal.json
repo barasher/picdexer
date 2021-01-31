@@ -15,7 +15,7 @@
   "kibana": {
     "url": "http://localhost:5601"
   },
-  "filewatcher": {
+  "dropzone": {
     "root": "/tmp2",
     "period": "20s"
   }
