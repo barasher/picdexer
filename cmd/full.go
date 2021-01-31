@@ -7,11 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defaultMetadataThreadCount = 4
-	defaultEsBulkSize          = 30
-	defaultBinaryThreadCount   = 4
-)
+
 
 var (
 	fullCmd = &cobra.Command{

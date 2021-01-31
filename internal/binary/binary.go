@@ -34,12 +34,12 @@ func NewBinaryManager(threadCount int, opts ...func(*BinaryManager) error) (*Bin
 	return bm, nil
 }
 
-func BinaryManagerDoResize(w, h int) func(*BinaryManager) error {
+func BinaryManagerDoResize(w int, h int, fallbackExtensions []string) func(*BinaryManager) error {
 	return func(bm *BinaryManager) error {
 		if w == 0 || h == 0 {
 			return fmt.Errorf("neither width (%v) nor height (%v) can equals 0", w, h)
 		}
-		bm.resizer = NewResizer(w, h)
+		bm.resizer = NewResizer(w, h, fallbackExtensions)
 		return nil
 	}
 }

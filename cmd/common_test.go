@@ -1,10 +1,25 @@
 package cmd
 
 import (
+	"context"
+	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+func simulateRun(success ...bool) func(context.Context, Config, []string) error {
+	i := 0
+	return func(context.Context, Config, []string) error {
+		s := success
+		v := s[i%len(s)]
+		i++
+		if v {
+			return nil
+		}
+		return fmt.Errorf("aaa")
+	}
+}
 
 func TestSetLoggingLevel(t *testing.T) {
 	var tcs = []struct {
