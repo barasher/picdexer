@@ -55,7 +55,7 @@ func TestBinaryManagerDoResize(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			bm, err := NewBinaryManager(4, BinaryManagerDoResize(tc.inW, tc.inH, []string{}))
+			bm, err := NewBinaryManager(4, BinaryManagerDoResize(tc.inW, tc.inH))
 			if tc.expOk {
 				assert.Nil(t, err)
 				resizer, ok := bm.resizer.(resizer)
