@@ -10,7 +10,7 @@ jobs:
         uses: actions/setup-go@v2
       - name: Environment dependencies
         run: |
-          apt-get -q -y install libimage-exiftool-perl imagemagick
+          sudo apt-get -q -y install libimage-exiftool-perl imagemagick
           go version
           go install -v github.com/rakyll/statik
           go get -v
