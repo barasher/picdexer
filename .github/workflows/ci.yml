@@ -9,7 +9,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ‘1.15.0’
+          go-version: ‘1.15’
       - name: Environment dependencies
         run: |
           apt-get -q -y install libimage-exiftool-perl imagemagick
