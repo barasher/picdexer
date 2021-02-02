@@ -34,7 +34,6 @@
 In the **`picdexer`** docker image :
 - the configuration file is located in `/etc/picdexer/picdexer.json`
 - the "input" folder is located in `/data/picdexer/in/`
-- the "output" folder (for simulations) is located in `/data/picdexer/out/`
 - the default "dropzone" folder is `/data/picdexer/dropzone/`
 
 The configuration file is a JSON file, here is a complexe example :
