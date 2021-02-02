@@ -1,6 +1,6 @@
 module github.com/barasher/picdexer
 
-go 1.12
+go 1.15
 
 require (
 	github.com/barasher/go-exiftool v1.3.0
