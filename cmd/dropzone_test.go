@@ -21,7 +21,7 @@ func TestFailOnRun(t *testing.T) {
 	d, err := ioutil.TempDir("/tmp/", "TestFailOnRun")
 	assert.Nil(t, err)
 	assert.Nil(t, copy("../testdata/picture.jpg", d+"/picture.jpg"))
-	//defer os.RemoveAll(d)
+	defer os.RemoveAll(d)
 	c := Config{Dropzone: DropzoneConf{
 		Root:   d,
 		Period: "10ms",
