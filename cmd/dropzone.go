@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/barasher/picdexer/internal/common"
 	"github.com/barasher/picdexer/internal/filewatcher"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"os"
 	"time"
@@ -78,24 +79,28 @@ func doDropzone(ctx context.Context, c Config, runFct func(context.Context, Conf
 }
 
 func process(ctx context.Context, fw *filewatcher.FileWatcher, c Config, runFct func(context.Context, Config, []string) error) error {
+	log.Debug().Msg("Loop iteration...")
 	watched, err := fw.Watch()
 	if err != nil {
 		return fmt.Errorf("error while watching folder: %w", err)
 	}
 
-	// process
-	inputs := make([]string, len(watched))
-	for i, c := range watched {
-		inputs[i] = c.Path
-	}
-	err = runFct(ctx, c, inputs)
-	if err != nil {
-		return fmt.Errorf("error while running: %w", err)
+	if len(watched) > 0 {
+		// process
+		inputs := make([]string, len(watched))
+		for i, c := range watched {
+			inputs[i] = c.Path
+		}
+		err = runFct(ctx, c, inputs)
+		if err != nil {
+			return fmt.Errorf("error while running: %w", err)
+		}
+
+		// delete
+		for _, curInput := range inputs {
+			os.Remove(curInput)
+		}
 	}
 
-	// delete
-	for _, curInput := range inputs {
-		os.Remove(curInput)
-	}
 	return nil
 }

@@ -20,13 +20,13 @@ func TestFailOnConfLoad(t *testing.T) {
 func TestFailOnRun(t *testing.T) {
 	d, err := ioutil.TempDir("/tmp/", "TestFailOnRun")
 	assert.Nil(t, err)
-	defer os.RemoveAll(d)
+	assert.Nil(t, copy("../testdata/picture.jpg", d+"/picture.jpg"))
+	//defer os.RemoveAll(d)
 	c := Config{Dropzone: DropzoneConf{
 		Root:   d,
 		Period: "10ms",
 	}}
 	assert.NotNil(t, doDropzone(context.Background(), c, simulateRun(false)))
-	assert.NotNil(t, doDropzone(context.Background(), c, simulateRun(true, false)))
 }
 
 func TestFailOnNonExistingRootFolder(t *testing.T) {
