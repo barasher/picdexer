@@ -95,6 +95,7 @@ If the return code is `0`, the command is successfully execute. If any problem h
 The `elasticsearch` and `kibana` part of the configuration file has to be filled.
 
 - Command line version : `./pcidexer setup -c [configurationFile]`
+  - `configurationFile` specifies the configuration file
 - Docker version :
 
 ```shell script
@@ -107,7 +108,10 @@ docker run --rm
 
 The full process command extracts metadata, resize (eventually) and store pictures.
 
-- Command line version : `./picdexer full -c [configurationFile] -d [sourceFolder]`
+- Command line version : `./picdexer full -c [configurationFile] -d [sourceFolder] -i [importId]`
+  - `configurationFile` specifies the configuration file
+  - `sourceFolder` specifies the folder that will be browsed to find pictures that will be processed
+  - `importId` specifies the import identifier that will be shared between all the pictures that will be processed
 - Docker version :
 
 ```shell script
@@ -122,6 +126,7 @@ docker run --rm
 This command watches a folder, index, stores pictures and delete files.
 
 - Command line version : `./picdexer dropzone -c [configurationFile]`
+  - `configurationFile` specifies the configuration file
 - Docker version :
 
 ```shell script
