@@ -16,8 +16,7 @@ jobs:
           sudo apt-get -q -y install libimage-exiftool-perl imagemagick
           go version
           go install -v github.com/rakyll/statik
-          echo "::set-env name=GOPATH::$(go env GOPATH)"
-          echo "::add-path::$(go env GOPATH)/bin"
+          export PATH=$PATH:`go env GOPATH`/bin
           go generate ./...
           go get -v
       - name: Tests
