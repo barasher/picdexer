@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.15.7-alpine3.13 AS build-env
+FROM golang:1.15.7-alpine3.12 AS build-env
 WORKDIR /root
 RUN apk --no-cache add build-base git
 ADD . /root
