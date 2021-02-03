@@ -1,7 +1,6 @@
 package setup
 
 import (
-	"github.com/barasher/picdexer/conf"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -25,12 +24,7 @@ func TestPutMapping_Nominal(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	c :=
-		conf.ElasticsearchConf{
-			Url: ts.URL,
-		}
-
-	s, err := NewESManager(c)
+	s, err := NewESManager(ts.URL)
 	assert.Nil(t, err)
 	assert.Nil(t, s.PutMapping(getHttpClient()))
 }
@@ -40,19 +34,13 @@ func TestPutMapping_WrongStatusCode(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer ts.Close()
-	c := conf.ElasticsearchConf{
-		Url: ts.URL,
-	}
-	s, err := NewESManager(c)
+	s, err := NewESManager(ts.URL)
 	assert.Nil(t, err)
 	assert.NotNil(t, s.PutMapping(getHttpClient()))
 }
 
 func TestPutMapping_FailRequest(t *testing.T) {
-	c := conf.ElasticsearchConf{
-		Url: "blablabla",
-	}
-	s, err := NewESManager(c)
+	s, err := NewESManager("blablabla")
 	assert.Nil(t, err)
 	assert.NotNil(t, s.PutMapping(getHttpClient()))
 }
@@ -63,9 +51,8 @@ func TestSimpleMappingQuery(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer ts.Close()
-	c := conf.ElasticsearchConf{Url: ts.URL}
 	h := http.Client{Timeout: 10 * time.Second}
-	s, err := NewESManager(c)
+	s, err := NewESManager(ts.URL)
 	assert.Nil(t, err)
 	status, _ := s.simpleMappingQuery(&h, http.MethodGet)
 	assert.Equal(t, http.StatusNoContent, status)
@@ -73,10 +60,10 @@ func TestSimpleMappingQuery(t *testing.T) {
 
 func TestMappingAlreadyExist(t *testing.T) {
 	var tcs = []struct {
-		tcID       string
+		tcID             string
 		inReturnedStatus int
-		expSuccess bool
-		expExists bool
+		expSuccess       bool
+		expExists        bool
 	}{
 		{"200", http.StatusOK, true, true},
 		{"404", http.StatusNotFound, true, false},
@@ -89,9 +76,8 @@ func TestMappingAlreadyExist(t *testing.T) {
 				w.WriteHeader(tc.inReturnedStatus)
 			}))
 			defer ts.Close()
-			c := conf.ElasticsearchConf{Url: ts.URL}
 			h := http.Client{Timeout: 10 * time.Second}
-			s, err := NewESManager(c)
+			s, err := NewESManager(ts.URL)
 			assert.Nil(t, err)
 			exists, err := s.MappingAlreadyExist(&h)
 			if tc.expSuccess {
@@ -106,9 +92,9 @@ func TestMappingAlreadyExist(t *testing.T) {
 
 func TestDeleteMapping(t *testing.T) {
 	var tcs = []struct {
-		tcID       string
+		tcID             string
 		inReturnedStatus int
-		expSuccess bool
+		expSuccess       bool
 	}{
 		{"200", http.StatusOK, true},
 		{"500", http.StatusInternalServerError, false},
@@ -120,9 +106,8 @@ func TestDeleteMapping(t *testing.T) {
 				w.WriteHeader(tc.inReturnedStatus)
 			}))
 			defer ts.Close()
-			c := conf.ElasticsearchConf{Url: ts.URL}
 			h := http.Client{Timeout: 10 * time.Second}
-			s, err := NewESManager(c)
+			s, err := NewESManager(ts.URL)
 			assert.Nil(t, err)
 			err = s.DeleteMapping(&h)
 			if tc.expSuccess {

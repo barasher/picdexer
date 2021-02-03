@@ -3,7 +3,7 @@ package binary
 import (
 	"context"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
+	"github.com/barasher/picdexer/internal/browse"
 	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
@@ -11,114 +11,94 @@ import (
 	"sync"
 )
 
-const (
-	fileIdentifier             = "file"
-	resizedFileIdentifier      = "resizedFile"
-	keyIdentifier              = "key"
-	defaultResizingThreadCount = 4
-	defaultToResizeChannelSize = defaultResizingThreadCount
-)
-
-type Storer struct {
-	conf    conf.BinaryConf
-	resizer resizerInterface
-	pusher  pusherInterface
+type BinaryManager struct {
+	threadCount int
+	resizer     resizerInterface
+	pusher      pusherInterface
 }
 
-func (s *Storer) resizingThreadCount() int {
-	n := s.conf.ResizingThreadCount
-	if n <1{
-		n = defaultResizingThreadCount
+func NewBinaryManager(threadCount int, opts ...func(*BinaryManager) error) (*BinaryManager, error) {
+	if threadCount <= 0 {
+		return nil, fmt.Errorf("threadCount should be >0 (%v)", threadCount)
 	}
-	return n
-}
-
-func (s *Storer) toResizeChannelSize() int {
-	n := s.conf.ToResizeChannelSize
-	if n <1 {
-		n = defaultToResizeChannelSize
+	bm := &BinaryManager{
+		threadCount: threadCount,
+		resizer:     NewNopResizer(),
+		pusher:      NewNopPusher(),
 	}
-	return n
-}
-
-func NewStorer(c conf.BinaryConf, push bool) (*Storer, error) {
-	s := &Storer{conf: c}
-
-	switch {
-	case c.Width > 0 && c.Height > 0:
-		s.resizer = NewResizer(c)
-	case c.Width == 0 && c.Height == 0:
-		s.resizer = NewNopResizer()
-	default:
-		return s, fmt.Errorf("wrong width (%v) & height (%v) couple", c.Width, c.Height)
-	}
-
-	s.pusher = NewNopPusher()
-	if push {
-		s.pusher = NewPusher(c)
-	}
-
-	return s, nil
-}
-
-func (s *Storer) StoreFolder(ctx context.Context, f string, o string) {
-	c := make(chan string, s.toResizeChannelSize())
-	go func() {
-		err := common.BrowseImages(f, func(path string, info os.FileInfo) {
-			c <- path
-		})
-		close(c)
-		if err != nil {
-			log.Error().Msgf("error while browsing folder %v: %v", f, err)
+	for _, cur := range opts {
+		if err := cur(bm); err != nil {
+			return nil, fmt.Errorf("error while creating EsPusher: %w", err)
 		}
-	}()
-	s.StoreChannel(ctx, c, o)
+	}
+	return bm, nil
 }
 
-func (s *Storer) StoreChannel(ctx context.Context, c <-chan string, o string) {
-	wg := &sync.WaitGroup{}
-	threadCount := s.resizingThreadCount()
-	wg.Add(threadCount)
-	for i := 0; i < threadCount; i++ {
-		go func(id int) {
-			s.storeChannel(ctx, id, c, o, wg)
+func BinaryManagerDoResize(w int, h int) func(*BinaryManager) error {
+	return func(bm *BinaryManager) error {
+		if w == 0 || h == 0 {
+			return fmt.Errorf("neither width (%v) nor height (%v) can equals 0", w, h)
+		}
+		bm.resizer = NewResizer(w, h)
+		return nil
+	}
+}
+
+func BinaryManagerDoPush(url string) func(*BinaryManager) error {
+	return func(bm *BinaryManager) error {
+		bm.pusher = NewPusher(url)
+		return nil
+	}
+}
+
+func (bm *BinaryManager) Store(ctx context.Context, inTaskChan chan browse.Task, outDir string) error {
+	var dir = outDir
+	var err error
+	if dir == "" {
+		dir, err = ioutil.TempDir(os.TempDir(), "picdexer")
+		if err != nil {
+			return fmt.Errorf("error while creating temporary folder: %w", err)
+		}
+		defer os.RemoveAll(dir)
+		log.Debug().Msgf("Resized pictures temporary folder: %v", dir)
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(bm.threadCount)
+	for i := 0; i < bm.threadCount; i++ {
+		go func(goRoutineId int) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case cur, ok := <-inTaskChan:
+					if !ok {
+						return
+					}
+					bm.store(ctx, cur, dir)
+				}
+			}
 		}(i)
 	}
 	wg.Wait()
+	return nil
 }
 
-func (s *Storer) storeChannel(ctx context.Context, threadId int, c <-chan string, o string, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	subLog := log.With().Int("threadId", threadId).Logger()
-
-	var dir = o
-	var err error
-	if o == "" {
-		dir, err = ioutil.TempDir(os.TempDir(), "picdexer")
-		if err != nil {
-			subLog.Error().Msgf("error while creating temporary folder: %v", err)
-			return
-		}
-		defer os.RemoveAll(dir)
-		subLog.Debug().Msgf("Resized pictures temporary folder: %v", dir)
+func (bm *BinaryManager) store(ctx context.Context, task browse.Task, outDir string) {
+	log.Info().Str(common.LogFileIdentifier, task.Path).Msg("Resizing...")
+	outBin, outKey, err := bm.resizer.resize(ctx, task.Path, outDir)
+	if err != nil {
+		log.Error().Str(common.LogFileIdentifier, task.Path).Msgf("Error while resizing: %v", err)
+		return
 	}
 
-	for cur := range c {
+	defer bm.resizer.cleanup(ctx, outBin)
 
-		subLog.Info().Str(fileIdentifier, cur).Msg("Resizing...")
-		outBin, outKey, err := s.resizer.resize(ctx, cur, dir)
-		if err != nil {
-			subLog.Error().Str(fileIdentifier, cur).Msgf("Error while resizing: %v", err)
-			continue
-		}
-
-		subLog.Info().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msg("Pushing...")
-		err = s.pusher.push(outBin, outKey)
-		if err != nil {
-			subLog.Error().Str(fileIdentifier, cur).Str(resizedFileIdentifier, outBin).Str(keyIdentifier, outKey).Msgf("Error while pushing: %v", err)
-			continue
-		}
-
+	log.Info().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msg("Pushing...")
+	err = bm.pusher.push(outBin, outKey)
+	if err != nil {
+		log.Error().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msgf("Error while pushing: %v", err)
+		return
 	}
 }

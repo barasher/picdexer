@@ -1,7 +1,6 @@
 package binary
 
 import (
-	"github.com/barasher/picdexer/conf"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -30,24 +29,20 @@ func TestPusher_StatusCode(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			c := conf.BinaryConf{Url: ts.URL}
-			err := NewPusher(c).push("../../testdata/picture.jpg", "myKey")
+			err := NewPusher(ts.URL).push("../../testdata/picture.jpg", "myKey")
 			assert.Equal(t, tc.expSuccess, err == nil)
 		})
 	}
 }
 
 func TestPusher_UnknownFile(t *testing.T) {
-	c := conf.BinaryConf{}
-	err := NewPusher(c).push("../../testdata/unknown.jpg", "myKey")
+	err := NewPusher("").push("../testdata/unknown.jpg", "myKey")
 	t.Logf("err: %v", err)
 	assert.NotNil(t, err)
 }
 
-
 func TestPusher_WrongUrl(t *testing.T) {
-	c := conf.BinaryConf{Url: "file:/tmp/"}
-	err := NewPusher(c).push("../../testdata/picture.jpg", "myKey")
+	err := NewPusher("file:/tmp/").push("../../testdata/picture.jpg", "myKey")
 	t.Logf("err: %v", err)
 	assert.NotNil(t, err)
 }

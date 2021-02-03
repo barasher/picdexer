@@ -1,127 +1,105 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
-	"github.com/barasher/picdexer/internal/binary"
 	"github.com/barasher/picdexer/internal/common"
-	dropzone2 "github.com/barasher/picdexer/internal/dropzone"
-	"github.com/barasher/picdexer/internal/metadata"
+	"github.com/barasher/picdexer/internal/filewatcher"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"os"
 	"time"
 )
 
-const (
-	defaultFileChannelSize = 20
-)
-
 var (
-	dropzoneCmd = &cobra.Command{
+	dzCmd = &cobra.Command{
 		Use:   "dropzone",
-		Short: "Picdexer : launch dropzone",
+		Short: "Picdexer : Dropzone",
 		RunE:  dropzone,
 	}
 )
 
 func init() {
-	dropzoneCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
-	dropzoneCmd.MarkFlagRequired("conf")
-	rootCmd.AddCommand(dropzoneCmd)
-}
+	// full
+	dzCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
+	dzCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
 
-func fileChannelSize(c conf.DropzoneConf) int {
-	n := c.FileChannelSize
-	if n < 1 {
-		n = defaultFileChannelSize
-	}
-	return n
+	dzCmd.MarkFlagRequired("conf")
+	rootCmd.AddCommand(dzCmd)
 }
 
 func dropzone(cmd *cobra.Command, args []string) error {
-	var c conf.Conf
+	return dropzone2(confFile, importID, Run)
+}
+
+func dropzone2(confFile string, importId string, runFct func(context.Context, Config, []string) error) error {
+	ctx := common.NewContext(importId)
+	var c Config
 	var err error
 	if confFile != "" {
-		if c, err = conf.LoadConf(confFile); err != nil {
+		if c, err = LoadConf(confFile); err != nil {
 			return fmt.Errorf("error while loading configuration (%v): %w", confFile, err)
 		}
 	}
 
-	if err := setLoggingLevel(c.LogLevel) ; err != nil {
+	if err := setLoggingLevel(c.LogLevel); err != nil {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
+	return doDropzone(ctx, c, runFct)
+}
 
-	ctx := common.NewContext(importID)
+func doDropzone(ctx context.Context, c Config, runFct func(context.Context, Config, []string) error) error {
+	fw := filewatcher.NewFileWatcher(c.Dropzone.Root)
+	fw.Watch()
 
-	fw, err := dropzone2.NewFileWatcher(c.Dropzone)
-	if err != nil {
-		return fmt.Errorf("error while watching folder %v: %w", c.Dropzone.Root, err)
-	}
 	period, err := time.ParseDuration(c.Dropzone.Period)
 	if err != nil {
 		return fmt.Errorf("error while parsing watching duration (%s): %w", c.Dropzone.Period, err)
 	}
+	timer := time.NewTimer(period)
 
-	idxer, err := metadata.NewIndexer(c.Elasticsearch)
+	err = process(ctx, fw, c, runFct)
 	if err != nil {
-		return fmt.Errorf("error while initializing metadata: %w", err)
+		return err
 	}
-	defer idxer.Close()
-
-	s, err := binary.NewStorer(c.Binary, true)
-	if err != nil {
-		return fmt.Errorf("error while initializing storer: %w", err)
-	}
-	binTmpDir, err := ioutil.TempDir(os.TempDir(), "picdexer")
-	if err != nil {
-		return fmt.Errorf("error while creating temporary folder: %v", err)
-	}
-
 	for {
-		log.Debug().Msgf("Watching iteration...")
-
-		items, err := fw.Watch()
-		if err != nil {
-			log.Error().Msgf("Error while watching: %s", err)
-		}
-		if len(items) > 0 {
-			metaTasks := make(chan metadata.ExtractTask, fileChannelSize(c.Dropzone))
-			go func() {
-				for _, cur := range items {
-					if common.IsPicture(cur.Path) {
-						metaTasks <- metadata.ExtractTask{Path: cur.Path, Info: cur.Info}
-					}
-				}
-				close(metaTasks)
-			}()
-			err = idxer.ExtractAndPushTasks(ctx, metaTasks)
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-timer.C:
+			err = process(ctx, fw, c, runFct)
 			if err != nil {
-				log.Error().Msgf("Error while extracting tasks: %v", err)
+				return err
 			}
+			timer.Reset(period)
+		}
+	}
 
-			binTasks := make(chan string, fileChannelSize(c.Dropzone))
-			go func() {
-				for _, cur := range items {
-					if common.IsPicture(cur.Path) {
-						binTasks <- cur.Path
-					}
-				}
-				close(binTasks)
-			}()
-			s.StoreChannel(ctx, binTasks, binTmpDir)
+	return nil
+}
 
-			for _, cur := range items {
-				if err := os.Remove(cur.Path); err != nil {
-					log.Error().Msgf("Error while deleting %v: %v", cur.Path, err)
-				}
-			}
+func process(ctx context.Context, fw *filewatcher.FileWatcher, c Config, runFct func(context.Context, Config, []string) error) error {
+	log.Debug().Msg("Loop iteration...")
+	watched, err := fw.Watch()
+	if err != nil {
+		return fmt.Errorf("error while watching folder: %w", err)
+	}
+
+	if len(watched) > 0 {
+		// process
+		inputs := make([]string, len(watched))
+		for i, c := range watched {
+			inputs[i] = c.Path
+		}
+		err = runFct(ctx, c, inputs)
+		if err != nil {
+			return fmt.Errorf("error while running: %w", err)
 		}
 
-		time.Sleep(period)
-
-		// TODO filter file type
+		// delete
+		for _, curInput := range inputs {
+			os.Remove(curInput)
+		}
 	}
 
 	return nil

@@ -1,10 +1,14 @@
 package metadata
 
 import (
-	"testing"
-
+	"context"
+	"fmt"
 	exif "github.com/barasher/go-exiftool"
+	"github.com/barasher/picdexer/internal/browse"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"strconv"
+	"testing"
 )
 
 func TestDegMinSecToDecimal(t *testing.T) {
@@ -264,57 +268,84 @@ func TestGetGPS(t *testing.T) {
 	}
 }
 
-func TestGetID(t *testing.T) {
+func TestNewMetadataExtractor(t *testing.T) {
 	var tcs = []struct {
-		tcID  string
-		inF   string
-		expOK bool
-		expID string
+		inTC  int
+		expOk bool
 	}{
-		{"nominal", "../../testdata/picture.jpg", true, "ec3d25618be7af41c6824855f0f42c73_picture.jpg"},
-		{"nonExisting", "nonExisting", false, ""},
+		{-1, false},
+		{0, false},
+		{2, true},
 	}
-
 	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			i, err := getID(tc.inF)
-			if tc.expOK {
+		t.Run(strconv.Itoa(tc.inTC), func(t *testing.T) {
+			me, err := NewMetadataExtractor(tc.inTC)
+			if tc.expOk {
+				defer me.Close()
 				assert.Nil(t, err)
-				assert.Equal(t, tc.expID, i)
+				assert.Equal(t, tc.inTC, me.threadCount)
 			} else {
 				assert.NotNil(t, err)
 			}
 		})
 	}
-
 }
 
-func TestGetBulkEntryHeader(t *testing.T) {
-	d := uint64(1)
-	var tcs = []struct {
-		tcID     string
-		inF      string
-		inD      *uint64
-		expOk    bool
-		expIndex string
-	}{
-		{"nominalWithDate", "../../testdata/picture.jpg", &d, true, indexName},
-		{"nominalWithoutate", "../../testdata/picture.jpg", nil, true, indexNameNoDate},
-		{"failOnID", "../../testdata/nonExisting.jpg", &d, false, ""},
-	}
+func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
+	_, err := NewMetadataExtractor(4, func(*MetadataExtractor) error {
+		return fmt.Errorf("anError")
+	})
+	assert.NotNil(t, err)
+}
 
-	for _, tc := range tcs {
-		t.Run(tc.tcID, func(t *testing.T) {
-			m := Model{
-				Date: tc.inD,
-			}
-			h, err := getBulkEntryHeader(tc.inF, m)
-			if tc.expOk {
-				assert.Nil(t, err)
-				assert.Equal(t, tc.expIndex, h.Index.Index)
-			} else {
-				assert.NotNil(t, err)
-			}
-		})
+func checkTestdataPictureResult(t *testing.T, m PictureMetadata) {
+	assert.Equal(t, 1.7, *m.Aperture)
+	assert.Equal(t, "1/10", *m.ShutterSpeed)
+	assert.Equal(t, []string{"keyword"}, m.Keywords)
+	assert.Equal(t, "model", *m.CameraModel)
+	assert.Equal(t, "lensmodel", *m.LensModel)
+	assert.Equal(t, "image/jpeg", *m.MimeType)
+	assert.Equal(t, uint64(550), *m.Height)
+	assert.Equal(t, uint64(458), *m.Width)
+	assert.Equal(t, uint64(20504), m.FileSize)
+	assert.Equal(t, uint64(1571912945000), *m.Date)
+	assert.Equal(t, "picture.jpg", m.FileName)
+	assert.Equal(t, "testdata", m.Folder)
+}
+
+func TestExtractMetadataFromFileNominal(t *testing.T) {
+	ext, err := NewMetadataExtractor(4)
+	assert.Nil(t, err)
+	defer ext.Close()
+
+	f := "../../testdata/picture.jpg"
+	fInfo, err := os.Stat(f)
+	assert.Nil(t, err)
+	m, err := ext.extractMetadataFromFile(context.TODO(), f, fInfo)
+
+	assert.Nil(t, err)
+	checkTestdataPictureResult(t, m)
+}
+
+func TestExtractMetadata(t *testing.T) {
+	inChan := make(chan browse.Task, 10)
+	outChan := make(chan PictureMetadata, 10)
+
+	f := "../../testdata/picture.jpg"
+	fInfo, err := os.Stat(f)
+	assert.Nil(t, err)
+	inChan <- browse.Task{Path: f, Info: fInfo}
+	close(inChan)
+
+	ext, err := NewMetadataExtractor(4)
+	assert.Nil(t, err)
+	err = ext.ExtractMetadata(context.TODO(), inChan, outChan)
+	assert.Nil(t, err)
+
+	pics := []PictureMetadata{}
+	for cur := range outChan {
+		pics = append(pics, cur)
 	}
+	assert.Equal(t, 1, len(pics))
+	checkTestdataPictureResult(t, pics[0])
 }

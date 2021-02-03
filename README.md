@@ -34,7 +34,6 @@
 In the **`picdexer`** docker image :
 - the configuration file is located in `/etc/picdexer/picdexer.json`
 - the "input" folder is located in `/data/picdexer/in/`
-- the "output" folder (for simulations) is located in `/data/picdexer/out/`
 - the default "dropzone" folder is `/data/picdexer/dropzone/`
 
 The configuration file is a JSON file, here is a complexe example :
@@ -44,42 +43,40 @@ The configuration file is a JSON file, here is a complexe example :
   "loggingLevel": "warn",
   "elasticsearch": {
     "url": "http://192.168.1.102:9200",
-    "extractionThreadCount": 4,
-    "toExtractChannelSize": 50
+    "threadCount": 4,
+    "bulkSize": 50
   },
   "binary": {
     "url": "http://192.168.1.100:8080",
     "height":480,
     "width":640,
-    "resizingThreadCount": 4,
-    "toResizeChannelSize": 4 
+    "threadCount": 4,
+    "workingDir": "/tmp"
   },
   "kibana": {
     "url": "http://192.168.1.102:5601"
   },
   "dropzone": {
     "root": "/tmp/foo",
-    "period": "5s",
-    "fileChannelSize": 10
+    "period": "5s"
   }
 }
 ```
 - `loggingLevel` (optional) defines the logging level. Values :`debug`, `info` (default), `warn`, `error`, ...
 - `elasticsearch` (required if used) configures the `elasticsearch` connexion and the metadata extraction process
   - `url` (required if documents are pushed) defines the `elasticsearch` endpoint
-  - `extractionThreadCount` (optional, default : `4`) defines how many thread have to be used to extract medatada 
-  - `toExtractChannelSize` (optimal, default : `50`) defines the size of the file buffer (go channel) that will be consumed by the extraction goroutines
+  - `threadCount` (optional, default : `4`) defines how many thread have to be used to extract medatada from pictures
+  - `bulkSize` (optimal, default : `30`) defines the size of the bulk that is sent to Elasticsearch 
 - `binary` (required if used) configures the interactions with `file-server` to store pictures
   - `url` (required if pictures are pushed) defines the `file-server` endpoint
   - `height` and `width` defines the target dimension of the pictures that will be stored. If one of the dimension is `0` then pictures will not be resized (default behaviour).
-  - `resizingThreadCount`   (optional, default : `4`) defines how many thread have to be used to resize pictures
-  - `toResizeChannelSize` (optional, default : `4`) defines the size of the file buffer (go channel) that will be consumed by the resizing goroutines
+  - `threadcount`   (optional, default : `4`) defines how many thread have to be used to resize pictures
+  - `workingDir` (optional) defines the folder where resized files are temporary stored
 - `kibana` (required if user) configures the interaction with `kibana` (for configuration purpose)
   - `url` (required if kibana has to be configured) defines the `kibana` endpoint
 - `dropzone` (required if used) configures dropzone
   - `root` (required) defines the watched folder
   - `period` defines where waiting period between to watching iteration ([syntax](https://golang.org/pkg/time/#ParseDuration), ex : 1m, 1h, 30s, ...)
-  - `fileChannelSize` (optional, default : `10`) defines the size of the buffer (go channel) that will be consumed by indexation
 
 ## Picdexer commands
 
@@ -120,75 +117,6 @@ docker run --rm
   barasher/picdexer:1.0.0 ./full.sh
 ```
 
-### Metadata management
-
-The metadata command deals with `elasticsearch` metadata indexation.
-
-#### Metadata extraction simulation
-
-This command simulates the indexation (dump the `elasticsearch` documents on stdout).
-
-- Command line version : `./picdexer metadata simulate -c [configurationFile] -d [sourceFolder]`
-- Docker version :
-
-```shell script
-docker run --rm
-  -v [hostSourceFolder]:/data/picdexer/in
-  -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
-  barasher/picdexer:1.0.0 ./metadata_simulate.sh
-```
-
-#### Metadata indexation
-
-This command indexes metadata to `elasticsearch`.
-
-- Command line version : `./picdexer metadata index -c [configurationFile] -d [sourceFolder]`
-- Docker version :
-
-```shell script
-docker run --rm
-  -v [hostSourceFolder]:/data/picdexer/in
-  -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
-  barasher/picdexer:1.0.0 ./metadata_index.sh
-```
-
-#### Listing all metadata from a file
-
-This command extracts all the metadata available for a picture : `./picdexer metadata display -f [pictureFile]`
-
-### Pictures (binary) management
-
-The binary command deals with the picture storage in `file-server`.
-
-#### Picture resizing simulation
-
-This command simulates the resizing and stores resized file in the filesystem.
-
-- Command line version : `./picdexer binary simulate -c [configurationFile] -d [sourceFolder] -o [outputFolder]`.
-- Docker version :
-
-```shell script
-docker run --rm
-  -v [hostSourceFolder]:/data/picdexer/in
-  -v [hostTargetFolder]:/data/picdexer/out
-  -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
-  barasher/picdexer:1.0.0 ./binary_simulate.sh
-```
-
-#### Picture pushing
-
-This command resizes pictures and stores the resized version in `file-server`.
-
-- Command line version : `./picdexer binary push -c [configurationFile] -d [sourceFolder]`.
-- Docker version :
-
-```shell script
-docker run --rm
-  -v [hostSourceFolder]:/data/picdexer/in
-  -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
-  barasher/picdexer:1.0.0 ./binary_push.sh
-```
-
 ### Dropzone (watch a folder)
 
 This command watches a folder, index, stores pictures and delete files.
@@ -200,5 +128,5 @@ This command watches a folder, index, stores pictures and delete files.
 docker run --rm
   -v [hostSourceFolder]:/data/picdexer/in
   -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
-  barasher/picdexer:1.0.0 ./dropzone.sh
+  barasher/picdexer:1.0.0 filewatcher
 ```

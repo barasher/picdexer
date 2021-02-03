@@ -6,7 +6,6 @@ package setup
 import (
 	"bytes"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
 	_ "github.com/barasher/picdexer/internal/setup/statik"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog/log"
@@ -14,9 +13,9 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"text/template"
 	"time"
 )
-
 
 type ESManagerInterface interface {
 	MappingAlreadyExist(client *http.Client) (bool, error)
@@ -25,8 +24,10 @@ type ESManagerInterface interface {
 }
 
 type Setup struct {
-	conf conf.Conf
-	fs   http.FileSystem
+	esUrl  string
+	kibUrl string
+	fsUrl  string
+	fs     http.FileSystem
 }
 
 func logReader(r io.Reader) error {
@@ -38,9 +39,9 @@ func logReader(r io.Reader) error {
 	return nil
 }
 
-func NewSetup(c conf.Conf) (*Setup, error) {
+func NewSetup(esUrl string, kibUrl string, fsUrl string) (*Setup, error) {
 	var err error
-	s := &Setup{conf: c}
+	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, fsUrl:fsUrl}
 	if s.fs, err = fs.New(); err != nil {
 		return nil, fmt.Errorf("error while loading fs: %w", err)
 	}
@@ -70,36 +71,54 @@ func (s *Setup) setupElasticsearch(m ESManagerInterface) error {
 
 func (s *Setup) SetupElasticsearch() error {
 	log.Info().Msgf("Pushing Elasticsearch mapping...")
-	m, err := NewESManager(s.conf.Elasticsearch)
+	m, err := NewESManager(s.esUrl)
 	if err != nil {
 		return err
 	}
 	return s.setupElasticsearch(m)
 }
 
+type kibTplVar struct {
+	FsUrl string
+}
+
 func (s *Setup) SetupKibana() error {
 	log.Info().Msgf("Pushing Kibana objects...")
 
+	// parse template
 	r, err := s.fs.Open("/kibana.ndjson")
 	if err != nil {
 		return fmt.Errorf("error while reading kibana saved objects: %w", err)
 	}
 	defer r.Close()
+	strTpl, err  := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("error while reading template: %w", err)
+	}
+	tpl, err := template.New("tpl").Delims("{{{", "}}}").Parse(string(strTpl))
+	if err != nil {
+		return fmt.Errorf("error while parsing template: %w", err)
+	}
 
+	// create multipart
 	body := new(bytes.Buffer)
 	mpart := multipart.NewWriter(body)
 	part, err := mpart.CreateFormFile("file", "kibana.ndjson")
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(part, r); err != nil {
-		return err
+
+	// resolve template in multipart
+	vars := kibTplVar{s.fsUrl}
+	if err := tpl.Execute(part, vars) ; err != nil {
+		return fmt.Errorf("error while resolving template: %w", err)
 	}
 	if err = mpart.Close(); err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, s.conf.Kibana.Url, body)
+	// query
+	req, err := http.NewRequest(http.MethodPost, s.kibUrl, body)
 	if err != nil {
 		return fmt.Errorf("error while creating http request: %w", err)
 	}
@@ -112,12 +131,12 @@ func (s *Setup) SetupKibana() error {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error while pushing mapping: %w", err)
 	}
 
+	// check response
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		if err := logReader(resp.Body); err != nil {

@@ -1,4 +1,4 @@
-package conf
+package cmd
 
 import (
 	"encoding/json"
@@ -6,40 +6,39 @@ import (
 	"os"
 )
 
-type Conf struct {
+type Config struct {
 	LogLevel      string            `json:"loggingLevel"`
 	Elasticsearch ElasticsearchConf `json:"elasticsearch"`
 	Binary        BinaryConf        `json:"binary"`
-	Kibana        KibanaConf        `json:"kibana"`
 	Dropzone      DropzoneConf      `json:"dropzone"`
+	Kibana        KibanaConf        `json:"kibana"`
 }
 
 type ElasticsearchConf struct {
-	Url                   string `json:"url"`
-	ExtractionThreadCount int    `json:"extractionThreadCount"`
-	ToExtractChannelSize  int    `json:"toExtractChannelSize"`
+	Url         string `json:"url"`
+	ThreadCount int    `json:"threadCount"`
+	BulkSize    int    `json:"bulkSize"`
 }
 
 type BinaryConf struct {
-	Url                 string `json:"url"`
-	Height              uint   `json:"height"`
-	Width               uint   `json:"width"`
-	ResizingThreadCount int    `json:"resizingThreadCount"`
-	ToResizeChannelSize int    `json:"toResizeChannelSize"`
+	Url         string `json:"url"`
+	Height      int    `json:"height"`
+	Width       int    `json:"width"`
+	ThreadCount int    `json:"threadCount"`
+	WorkingDir  string `json:"workingDir"`
 }
 
 type DropzoneConf struct {
-	Root string `json:"root"`
+	Root   string `json:"root"`
 	Period string `json:"period"`
-	FileChannelSize int `json:"fileChannelSize"`
 }
 
 type KibanaConf struct {
 	Url string `json:"url"`
 }
 
-func LoadConf(f string) (Conf, error) {
-	conf := Conf{}
+func LoadConf(f string) (Config, error) {
+	conf := Config{}
 	confReader, err := os.Open(f)
 	if err != nil {
 		return conf, fmt.Errorf("Error while opening configuration file %v: %w", f, err)

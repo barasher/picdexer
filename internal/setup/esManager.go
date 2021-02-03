@@ -2,7 +2,6 @@ package setup
 
 import (
 	"fmt"
-	"github.com/barasher/picdexer/conf"
 	_ "github.com/barasher/picdexer/internal/setup/statik"
 	"github.com/rakyll/statik/fs"
 	"net/http"
@@ -11,13 +10,13 @@ import (
 const mappingPath = "/picdexer"
 
 type ESManager struct {
-	conf conf.ElasticsearchConf
-	fs   http.FileSystem
+	url string
+	fs  http.FileSystem
 }
 
-func NewESManager(c conf.ElasticsearchConf) (*ESManager, error) {
+func NewESManager(url string) (*ESManager, error) {
 	var err error
-	m := &ESManager{conf: c}
+	m := &ESManager{url: url}
 	if m.fs, err = fs.New(); err != nil {
 		return nil, fmt.Errorf("error while loading fs: %w", err)
 	}
@@ -25,7 +24,7 @@ func NewESManager(c conf.ElasticsearchConf) (*ESManager, error) {
 }
 
 func (s *ESManager) simpleMappingQuery(client *http.Client, method string) (int, error) {
-	req, err := http.NewRequest(method, s.conf.Url, nil)
+	req, err := http.NewRequest(method, s.url, nil)
 	if err != nil {
 		return -1, fmt.Errorf("error while creating http request: %w", err)
 	}
@@ -44,7 +43,7 @@ func (s *ESManager) simpleMappingQuery(client *http.Client, method string) (int,
 
 func (s *ESManager) MappingAlreadyExist(client *http.Client) (bool, error) {
 	status, err := s.simpleMappingQuery(client, http.MethodGet)
-	switch  {
+	switch {
 	case err != nil:
 		return false, err
 	case status == http.StatusOK:
@@ -57,8 +56,8 @@ func (s *ESManager) MappingAlreadyExist(client *http.Client) (bool, error) {
 }
 
 func (s *ESManager) DeleteMapping(client *http.Client) error {
-	status, err :=  s.simpleMappingQuery(client, http.MethodDelete)
-	switch  {
+	status, err := s.simpleMappingQuery(client, http.MethodDelete)
+	switch {
 	case err != nil:
 		return err
 	case status == http.StatusOK:
@@ -75,7 +74,7 @@ func (s *ESManager) PutMapping(client *http.Client) error {
 	}
 	defer r.Close()
 
-	req, err := http.NewRequest(http.MethodPut, s.conf.Url, r)
+	req, err := http.NewRequest(http.MethodPut, s.url, r)
 	if err != nil {
 		return fmt.Errorf("error while creating http request: %w", err)
 	}

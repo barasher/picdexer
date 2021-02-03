@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const importIdCtxKey    = "impID"
+const importIdCtxKey = "impID"
 
 func NewContext(i string) context.Context {
 	impID := i
@@ -15,7 +15,6 @@ func NewContext(i string) context.Context {
 	}
 	return context.WithValue(context.Background(), importIdCtxKey, impID)
 }
-
 
 func GetImportID(ctx context.Context) string {
 	if v := ctx.Value(importIdCtxKey); v != nil {

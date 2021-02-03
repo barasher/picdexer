@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
 	"github.com/barasher/picdexer/internal/common"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
+
+
 
 var (
 	fullCmd = &cobra.Command{
@@ -21,34 +22,34 @@ func init() {
 	fullCmd.Flags().StringVarP(&confFile, "conf", "c", "", "Picdexer configuration file")
 	fullCmd.Flags().StringArrayVarP(&input, "dir", "d", []string{}, "Directory/File containing pictures")
 	fullCmd.Flags().StringVarP(&importID, "impId", "i", "", "Import identifier")
+
+	/*fullCmd.Flags().BoolVarP(&doNotExtractMetadata, "doNotExtractMetadata", "", false, "Does not extract metadata")
+	fullCmd.Flags().BoolVarP(&doNotIndex, "doNotIndex", "", false, "Does not index metadata")
+	fullCmd.Flags().BoolVarP(&doNotUpload, "doNotUpload", "", false, "Does not upload picture")
+	fullCmd.Flags().BoolVarP(&doNotResize, "doNotResize", "", false, "Does not resize")*/
+
 	fullCmd.MarkFlagRequired("conf")
 	fullCmd.MarkFlagRequired("dir")
-
 	rootCmd.AddCommand(fullCmd)
 }
 
 func full(cmd *cobra.Command, args []string) error {
-	ctx := common.NewContext(importID)
+	return doFull(confFile, importID, input, Run)
+}
 
-	var c conf.Conf
+func doFull(confFile string, importID string, inputs []string, runFct func( context.Context,  Config,  []string) error) error {
+	ctx := common.NewContext(importID)
+	var c Config
 	var err error
 	if confFile != "" {
-		if c, err = conf.LoadConf(confFile); err != nil {
+		if c, err = LoadConf(confFile); err != nil {
 			return fmt.Errorf("error while loading configuration (%v): %w", confFile, err)
 		}
 	}
 
-	if err := setLoggingLevel(c.LogLevel) ; err != nil {
+	if err := setLoggingLevel(c.LogLevel); err != nil {
 		return fmt.Errorf("error while configuring logging level: %w", err)
 	}
 
-	log.Info().Msg("Indexing metadata...")
-	if err :=  extractConfigured(ctx, c, input,true); err != nil {
-		return fmt.Errorf("Error while indexing metadata: %w", err)
-	}
-	log.Info().Msg("Storing pictures...")
-	if err :=  doBinConfigured(true, c, input, ""); err != nil {
-		return fmt.Errorf("Error while storing pictures: %w", err)
-	}
-	return nil
+	return runFct(ctx, c, inputs)
 }

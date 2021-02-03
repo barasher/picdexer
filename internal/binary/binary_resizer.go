@@ -5,15 +5,17 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/barasher/picdexer/conf"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
+const resizedFileIdentifier = "resizedFile"
+
 type resizerInterface interface {
 	resize(ctx context.Context, f string, o string) (string, string, error)
+	cleanup(ctx context.Context, f string) error
 }
 
 func getOutputFilename(file string) (string, error) {
@@ -34,15 +36,15 @@ type resizer struct {
 	dimensions string
 }
 
-
 func (r resizer) resize(ctx context.Context, f string, d string) (string, string, error) {
 	outFilename, err := getOutputFilename(f)
 	if err != nil {
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
 	}
 	outPath := filepath.Join(d, outFilename)
+	var cmd *exec.Cmd
 	args := []string{f, "-quiet", "-resize", r.dimensions, outPath}
-	cmd := exec.Command("convert", args...)
+	cmd = exec.Command("convert", args...)
 	b, _ := cmd.CombinedOutput()
 	if len(b) > 0 {
 		return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
@@ -50,16 +52,21 @@ func (r resizer) resize(ctx context.Context, f string, d string) (string, string
 	return outPath, outFilename, nil
 }
 
+func (r resizer) cleanup(ctx context.Context, f string) error {
+	return os.Remove(f)
+}
 
-
-func NewResizer(c conf.BinaryConf) resizer {
-	return resizer{dimensions: fmt.Sprintf("%vx%v", c.Width, c.Height)}
+func NewResizer(w int, h int) resizer {
+	r := resizer{
+		dimensions: fmt.Sprintf("%vx%v", w, h),
+	}
+	return r
 }
 
 type nopResizer struct {
 }
 
-func (r nopResizer) resize(ctx context.Context, f string, d string) (string, string,  error) {
+func (r nopResizer) resize(ctx context.Context, f string, d string) (string, string, error) {
 	outFilename, err := getOutputFilename(f)
 	if err != nil {
 		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
@@ -67,7 +74,10 @@ func (r nopResizer) resize(ctx context.Context, f string, d string) (string, str
 	return f, outFilename, nil
 }
 
+func (r nopResizer) cleanup(ctx context.Context, f string) error {
+	return nil
+}
+
 func NewNopResizer() nopResizer {
 	return nopResizer{}
 }
-

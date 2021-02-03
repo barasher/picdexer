@@ -2,7 +2,6 @@ package binary
 
 import (
 	"context"
-	"github.com/barasher/picdexer/conf"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -20,8 +19,12 @@ func TestNopResizer_Nominal(t *testing.T) {
 
 func TestNopResizer_NonExisting(t *testing.T) {
 	r := NewNopResizer()
-	_, _, err := r.resize(context.TODO(), "../../testdata/nonExisting.jpg", "/tmp")
+	_, _, err := r.resize(context.TODO(), "../testdata/nonExisting.jpg", "/tmp")
 	assert.NotNil(t, err)
+}
+
+func TestNopResizerCleanUp(t *testing.T) {
+	assert.Nil(t, NewNopResizer().cleanup(context.TODO(), "blabla"))
 }
 
 func TestGetOutputFilename_Nominal(t *testing.T) {
@@ -31,7 +34,7 @@ func TestGetOutputFilename_Nominal(t *testing.T) {
 }
 
 func TestGetOutputFilename_NonExisting(t *testing.T) {
-	_, err := getOutputFilename("../../testdata/nonExisting.jpg")
+	_, err := getOutputFilename("../testdata/nonExisting.jpg")
 	assert.NotNil(t, err)
 }
 
@@ -41,7 +44,7 @@ func TestResizer_Nominal(t *testing.T) {
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
 
-	r := NewResizer(conf.BinaryConf{Height: 100, Width: 100})
+	r := NewResizer(100, 100)
 	bin, key, err := r.resize(context.TODO(), "../../testdata/picture.jpg", outDir)
 	assert.Nil(t, err)
 	assert.Equal(t, filepath.Join(outDir, "ec3d25618be7af41c6824855f0f42c73_picture.jpg"), bin)
@@ -54,8 +57,8 @@ func TestResizer_NonExistingSource(t *testing.T) {
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
 
-	r := NewResizer(conf.BinaryConf{Height: 100, Width: 100})
-	_, _, err = r.resize(context.TODO(), "../../testdata/nonExisting.jpg", outDir)
+	r := NewResizer(100, 100)
+	_, _, err = r.resize(context.TODO(), "../testdata/nonExisting.jpg", outDir)
 	assert.NotNil(t, err)
 }
 
@@ -65,8 +68,22 @@ func TestResizer_FailOnResizing(t *testing.T) {
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
 
-	r := NewResizer(conf.BinaryConf{Height: 100, Width: 100})
+	r := NewResizer(100, 100)
 	_, _, err = r.resize(context.TODO(), "../../testdata/picture.jpg", "/blabliblu/")
 	t.Logf("error: %v", err)
 	assert.NotNil(t, err)
+}
+
+func TestResizerCleanUp_Nominal(t *testing.T) {
+	f, err := ioutil.TempFile("/tmp", "TestNopResizer_CleanUp")
+	assert.Nil(t, err)
+	defer os.Remove(f.Name())
+	r := NewResizer(640, 480)
+	assert.Nil(t, r.cleanup(context.TODO(), f.Name()))
+	_, err = os.Stat("/path/to/whatever")
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestResizerCleanUp_NonExisting(t *testing.T) {
+	assert.NotNil(t, NewResizer(640, 480).cleanup(context.TODO(), "nonExistingFile"))
 }

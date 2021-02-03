@@ -1,9 +1,19 @@
 {
   "loggingLevel": "info",
+  "elasticsearch": {
+    "url": "http://localhost:9200"
+  },
+  "binary": {
+    "url": "http://localhost:8080",
+    "height":480,
+    "width":640
+  },
+  "kibana": {
+    "url": "http://localhost:5601"
+  },
   "dropzone": {
-    "dropzone": {
-      "root": "/data/picdexer/dropzone",
-      "period": "1m"
-    }
+    "root": "/data/picdexer/dropzone",
+    "period": "1m"
   }
+
 }
