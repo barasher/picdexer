@@ -1,6 +1,6 @@
 # picdexer
 
-[![Build Status](https://travis-ci.org/barasher/picdexer.svg?branch=master)](https://travis-ci.org/barasher/picdexer)
+![Build Status](https://github.com/barasher/picdexer/workflows/PicdexerCI/badge.svg)
 [![codecov](https://codecov.io/gh/barasher/picdexer/branch/master/graph/badge.svg)](https://codecov.io/gh/barasher/picdexer)
 
 **`picdexer`** is a picture indexing solution :
