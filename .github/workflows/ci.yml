@@ -1,0 +1,24 @@
+name: PicdexerCI
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - name: Environment dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -q -y install libimage-exiftool-perl imagemagick
+          go version
+          go install -v github.com/rakyll/statik
+          echo "::set-env name=GOPATH::$(go env GOPATH)"
+          echo "::add-path::$(go env GOPATH)/bin"
+          go generate ./...
+          go get -v
+      - name: Tests
+        run: go test ./...
