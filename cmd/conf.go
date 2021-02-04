@@ -26,6 +26,7 @@ type BinaryConf struct {
 	Width       int    `json:"width"`
 	ThreadCount int    `json:"threadCount"`
 	WorkingDir  string `json:"workingDir"`
+	UsePreviewForExtensions []string `json:"usePreviewForExtensions"`
 }
 
 type DropzoneConf struct {

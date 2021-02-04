@@ -6,7 +6,6 @@ import (
 	"github.com/barasher/picdexer/internal/browse"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -55,7 +54,7 @@ func TestBinaryManagerDoResize(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.tcID, func(t *testing.T) {
-			bm, err := NewBinaryManager(4, BinaryManagerDoResize(tc.inW, tc.inH))
+			bm, err := NewBinaryManager(4, BinaryManagerDoResize(tc.inW, tc.inH, []string{}))
 			if tc.expOk {
 				assert.Nil(t, err)
 				resizer, ok := bm.resizer.(resizer)
@@ -82,9 +81,9 @@ type mockSubStore struct {
 	cleanedUp bool
 }
 
-func (m *mockSubStore) resize(ctx context.Context, f string, o string) (string, string, error) {
+func (m *mockSubStore) resize(ctx context.Context, from string, to string) error {
 	m.resized = true
-	return f, filepath.Base(f), nil
+	return nil
 }
 
 

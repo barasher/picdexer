@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/barasher/picdexer/internal/common"
+	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 )
@@ -11,6 +12,7 @@ import (
 type Task struct {
 	Path string
 	Info os.FileInfo
+	FileID string
 }
 
 type Browser struct{}
@@ -23,11 +25,16 @@ func (*Browser) Browse(ctx context.Context, dirList []string, outFileChan chan T
 				return err
 			}
 			if !info.IsDir() {
-				if common.IsPicture(path) {
-					outFileChan <- Task{
-						Path: path,
-						Info: info,
+				if isPic, key, err := common.CategorizePicture(path); err == nil {
+					if isPic {
+						outFileChan <- Task{
+							Path: path,
+							Info: info,
+							FileID: key,
+						}
 					}
+				} else {
+					log.Warn().Str(common.LogFileIdentifier, path).Msgf("%v", err)
 				}
 			}
 			return nil
