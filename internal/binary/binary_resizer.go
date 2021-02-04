@@ -34,8 +34,13 @@ func (r resizer) hasToFallback(f string) bool {
 
 func (r resizer) resize(ctx context.Context, from string, to string) error {
 	var cmd *exec.Cmd
-	args := []string{from, "-quiet", "-resize", r.dimensions, to}
-	cmd = exec.Command("convert", args...)
+	if r.hasToFallback(from) {
+		args := fmt.Sprintf("exiftool %v -b -previewImage | convert - -size %v %v", from, r.dimensions, to)
+		cmd = exec.Command("bash", "-c", args)
+	} else {
+		args := []string{from, "-quiet", "-resize", r.dimensions, to}
+		cmd = exec.Command("convert", args...)
+	}
 	b, _ := cmd.CombinedOutput()
 	if len(b) > 0 {
 		return fmt.Errorf("error on stdout %v: %v", from, string(b))
