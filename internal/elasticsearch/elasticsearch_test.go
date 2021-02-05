@@ -192,7 +192,7 @@ func TestConvertMetadataToEsDoc(t *testing.T) {
 	in <- metadata.PictureMetadata{
 		FileName:   "picture.jpg",
 		SourceFile: "../../testdata/picture.jpg",
-		FileID: "fileIDValue",
+		FileID:     "fileIDValue",
 	}
 	close(in)
 

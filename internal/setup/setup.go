@@ -41,7 +41,7 @@ func logReader(r io.Reader) error {
 
 func NewSetup(esUrl string, kibUrl string, fsUrl string) (*Setup, error) {
 	var err error
-	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, fsUrl:fsUrl}
+	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, fsUrl: fsUrl}
 	if s.fs, err = fs.New(); err != nil {
 		return nil, fmt.Errorf("error while loading fs: %w", err)
 	}
@@ -91,7 +91,7 @@ func (s *Setup) SetupKibana() error {
 		return fmt.Errorf("error while reading kibana saved objects: %w", err)
 	}
 	defer r.Close()
-	strTpl, err  := ioutil.ReadAll(r)
+	strTpl, err := ioutil.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("error while reading template: %w", err)
 	}
@@ -110,7 +110,7 @@ func (s *Setup) SetupKibana() error {
 
 	// resolve template in multipart
 	vars := kibTplVar{s.fsUrl}
-	if err := tpl.Execute(part, vars) ; err != nil {
+	if err := tpl.Execute(part, vars); err != nil {
 		return fmt.Errorf("error while resolving template: %w", err)
 	}
 	if err = mpart.Close(); err != nil {

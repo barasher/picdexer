@@ -71,8 +71,8 @@ func TestResizerCleanUp_NonExisting(t *testing.T) {
 
 func TestNewResizer_fallbackExt(t *testing.T) {
 	var tcs = []struct {
-		tcID       string
-		inExt   []string
+		tcID   string
+		inExt  []string
 		expExt []string
 	}{
 		{"nil", nil, []string{}},

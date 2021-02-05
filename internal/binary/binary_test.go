@@ -76,8 +76,8 @@ func TestBinaryManagerDoPush(t *testing.T) {
 }
 
 type mockSubStore struct {
-	resized bool
-	pushed  bool
+	resized   bool
+	pushed    bool
 	cleanedUp bool
 }
 
@@ -85,7 +85,6 @@ func (m *mockSubStore) resize(ctx context.Context, from string, to string) error
 	m.resized = true
 	return nil
 }
-
 
 func (m *mockSubStore) cleanup(ctx context.Context, f string) error {
 	m.cleanedUp = true

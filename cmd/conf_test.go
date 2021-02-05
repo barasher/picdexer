@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestLoadConf_Nominal(t *testing.T)  {
+func TestLoadConf_Nominal(t *testing.T) {
 	c, err := LoadConf("../testdata/conf/picdexer_nominal.json")
 	assert.Nil(t, err)
 	assert.Equal(t, "debug", c.LogLevel)

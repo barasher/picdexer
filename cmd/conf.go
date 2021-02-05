@@ -21,11 +21,11 @@ type ElasticsearchConf struct {
 }
 
 type BinaryConf struct {
-	Url         string `json:"url"`
-	Height      int    `json:"height"`
-	Width       int    `json:"width"`
-	ThreadCount int    `json:"threadCount"`
-	WorkingDir  string `json:"workingDir"`
+	Url                     string   `json:"url"`
+	Height                  int      `json:"height"`
+	Width                   int      `json:"width"`
+	ThreadCount             int      `json:"threadCount"`
+	WorkingDir              string   `json:"workingDir"`
 	UsePreviewForExtensions []string `json:"usePreviewForExtensions"`
 }
 

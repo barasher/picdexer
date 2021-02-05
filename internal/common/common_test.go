@@ -6,14 +6,12 @@ import (
 	"testing"
 )
 
-
-
 func TestGetMimeType(t *testing.T) {
 	var tcs = []struct {
 		tcID       string
 		inPath     string
 		expSuccess bool
-		expMime      string
+		expMime    string
 	}{
 		{"txt", "../../testdata/nonPictureFile.txt", true, "text/plain"},
 		{"jpg", "../../testdata/picture.jpg", true, "image/jpeg"},
@@ -38,7 +36,7 @@ func TestHash(t *testing.T) {
 		tcID       string
 		inPath     string
 		expSuccess bool
-		expHash      string
+		expHash    string
 	}{
 		{"txt", "../../testdata/nonPictureFile.txt", true, "d41d8cd98f00b204e9800998ecf8427e"},
 		{"jpg", "../../testdata/picture.jpg", true, "ec3d25618be7af41c6824855f0f42c73"},
@@ -60,11 +58,11 @@ func TestHash(t *testing.T) {
 
 func TestCategorizePicture(t *testing.T) {
 	var tcs = []struct {
-		tcID       string
-		inPath     string
-		expSuccess bool
-		expIsPicture      bool
-		expKey string
+		tcID         string
+		inPath       string
+		expSuccess   bool
+		expIsPicture bool
+		expKey       string
 	}{
 		{"txt", "../../testdata/nonPictureFile.txt", true, false, ""},
 		{"jpg", "../../testdata/picture.jpg", true, true, "ec3d25618be7af41c6824855f0f42c73_picture.jpg"},

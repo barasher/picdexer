@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
 var (
 	fullCmd = &cobra.Command{
 		Use:   "full",
@@ -37,7 +35,7 @@ func full(cmd *cobra.Command, args []string) error {
 	return doFull(confFile, importID, input, Run)
 }
 
-func doFull(confFile string, importID string, inputs []string, runFct func( context.Context,  Config,  []string) error) error {
+func doFull(confFile string, importID string, inputs []string, runFct func(context.Context, Config, []string) error) error {
 	ctx := common.NewContext(importID)
 	var c Config
 	var err error

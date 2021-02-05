@@ -10,8 +10,8 @@ import (
 )
 
 type Task struct {
-	Path string
-	Info os.FileInfo
+	Path   string
+	Info   os.FileInfo
 	FileID string
 }
 
@@ -28,8 +28,8 @@ func (*Browser) Browse(ctx context.Context, dirList []string, outFileChan chan T
 				if isPic, key, err := common.CategorizePicture(path); err == nil {
 					if isPic {
 						outFileChan <- Task{
-							Path: path,
-							Info: info,
+							Path:   path,
+							Info:   info,
 							FileID: key,
 						}
 					}

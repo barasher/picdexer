@@ -341,8 +341,8 @@ func TestExtractMetadata(t *testing.T) {
 	fInfo, err := os.Stat(f)
 	assert.Nil(t, err)
 	inChan <- browse.Task{
-		Path: f,
-		Info: fInfo,
+		Path:   f,
+		Info:   fInfo,
 		FileID: "fileId42",
 	}
 	close(inChan)
