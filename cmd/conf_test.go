@@ -19,6 +19,7 @@ func TestLoadConf_Nominal(t *testing.T)  {
 	assert.Equal(t, 640, c.Binary.Width)
 	assert.Equal(t, 11, c.Binary.ThreadCount)
 	assert.Equal(t, "/tmp", c.Binary.WorkingDir)
+	assert.Equal(t, []string{"ext1", "ext2"}, c.Binary.UsePreviewForExtensions)
 	// kibana
 	assert.Equal(t, "http://localhost:5601", c.Kibana.Url)
 	// dropzone

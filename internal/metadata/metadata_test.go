@@ -299,6 +299,7 @@ func TestNewMetadataExtractor_ErrorOnOpts(t *testing.T) {
 }
 
 func checkTestdataPictureResult(t *testing.T, m PictureMetadata) {
+	assert.Equal(t, "fileId42", m.FileID)
 	assert.Equal(t, 1.7, *m.Aperture)
 	assert.Equal(t, "1/10", *m.ShutterSpeed)
 	assert.Equal(t, []string{"keyword"}, m.Keywords)
@@ -321,7 +322,12 @@ func TestExtractMetadataFromFileNominal(t *testing.T) {
 	f := "../../testdata/picture.jpg"
 	fInfo, err := os.Stat(f)
 	assert.Nil(t, err)
-	m, err := ext.extractMetadataFromFile(context.TODO(), f, fInfo)
+	task := browse.Task{
+		Path:   f,
+		Info:   fInfo,
+		FileID: "fileId42",
+	}
+	m, err := ext.extractMetadataFromFile(context.TODO(), task)
 
 	assert.Nil(t, err)
 	checkTestdataPictureResult(t, m)
@@ -334,7 +340,11 @@ func TestExtractMetadata(t *testing.T) {
 	f := "../../testdata/picture.jpg"
 	fInfo, err := os.Stat(f)
 	assert.Nil(t, err)
-	inChan <- browse.Task{Path: f, Info: fInfo}
+	inChan <- browse.Task{
+		Path: f,
+		Info: fInfo,
+		FileID: "fileId42",
+	}
 	close(inChan)
 
 	ext, err := NewMetadataExtractor(4)

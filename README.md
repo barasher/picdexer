@@ -72,6 +72,7 @@ The configuration file is a JSON file, here is a complexe example :
   - `height` and `width` defines the target dimension of the pictures that will be stored. If one of the dimension is `0` then pictures will not be resized (default behaviour).
   - `threadcount`   (optional, default : `4`) defines how many thread have to be used to resize pictures
   - `workingDir` (optional) defines the folder where resized files are temporary stored
+  - `usePreviewForExtensions` (optional - string array) stores all the file extensions that requires a fallback to resize pictures. Some picture formats are not supported by `exiftool` : the "nominal" process won't work. Some of these file formats embed previews that can be resized. To use this fallback, list is this parameter all the file extensions.
 - `kibana` (required if user) configures the interaction with `kibana` (for configuration purpose)
   - `url` (required if kibana has to be configured) defines the `kibana` endpoint
 - `dropzone` (required if used) configures dropzone
@@ -135,3 +136,35 @@ docker run --rm
   -v [hostConfigurationFile]:/etc/picdexer/picdexer.json
   barasher/picdexer:1.0.0 filewatcher
 ```
+
+## Troubleshooting
+
+### Unable to resize picture
+
+Context: `picdexer` is trying to resize a picture whose file format is not directly compatible with `exiftool` (sample : CR2).
+
+Symptom:
+```json
+{"level":"debug","time":"2021-02-05T22:50:44+01:00","message":"Resized pictures temporary folder: /tmp/picdexer986944982"}
+{"level":"info","file":"/tmp/b/cr2a.CR2","time":"2021-02-05T22:50:44+01:00","message":"Resizing..."}
+{"level":"error","file":"/tmp/b/cr2a.CR2","time":"2021-02-05T22:50:44+01:00","message":"Error while resizing: error on stdout /tmp/b/cr2a.CR2: convert-im6.q16: delegate failed `'ufraw-batch' --silent --create-id=also --out-type=png --out-depth=16 '--output=%u.png' '%i'' @ error/delegate.c/InvokeDelegate/1919.\nconvert-im6.q16: unable to open image `/tmp/magick-8484Bbj7c4KBqOf4.ppm': No such file or directory @ error/blob.c/OpenBlob/2701.\nconvert-im6.q16: no images defined `/tmp/picdexer986944982/c2ba6316e0d868217d5bcda5de42774f_cr2a.CR2.jpg' @ error/convert.c/ConvertImageCommand/3258.\n"}
+```
+
+Solution: configure `picdexer` to fallback to the embedded "preview" resizing for CR2 file extension.
+
+Configuration:
+```json
+{
+  "binary": {
+     "usePreviewForExtensions": ["cr2"]
+  }
+}
+```
+
+Result:
+```json
+{"level":"debug","time":"2021-02-05T22:53:51+01:00","message":"Resized pictures temporary folder: /tmp/picdexer608080445"}
+{"level":"info","file":"/tmp/b/cr2a.CR2","time":"2021-02-05T22:53:51+01:00","message":"Resizing..."}
+{"level":"info","file":"/tmp/b/cr2a.CR2","resizedFile":"/tmp/picdexer608080445/c2ba6316e0d868217d5bcda5de42774f_cr2a.CR2.jpg","file":"c2ba6316e0d868217d5bcda5de42774f_cr2a.CR2.jpg","time":"2021-02-05T22:53:52+01:00","message":"Pushing..."}
+```
+ 

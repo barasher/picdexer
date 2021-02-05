@@ -2,63 +2,63 @@ package binary
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"strings"
 )
 
 const resizedFileIdentifier = "resizedFile"
 
 type resizerInterface interface {
-	resize(ctx context.Context, f string, o string) (string, string, error)
+	resize(ctx context.Context, from string, to string) error
 	cleanup(ctx context.Context, f string) error
 }
 
-func getOutputFilename(file string) (string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return "", fmt.Errorf("error while opening file %v: %w", f, err)
-	}
-	defer f.Close()
-	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", fmt.Errorf("error while calculating md5 for %v: %w", file, err)
-	}
-	o := fmt.Sprintf("%s_%s", hex.EncodeToString(h.Sum(nil)), filepath.Base(file))
-	return o, nil
-}
-
 type resizer struct {
-	dimensions string
+	dimensions  string
+	fallbackExt []string
 }
 
-func (r resizer) resize(ctx context.Context, f string, d string) (string, string, error) {
-	outFilename, err := getOutputFilename(f)
-	if err != nil {
-		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
+func (r resizer) hasToFallback(f string) bool {
+	if len(r.fallbackExt) > 0 {
+		lf := strings.ToLower(f)
+		for _, curExt := range r.fallbackExt {
+			if strings.HasSuffix(lf, curExt) {
+				return true
+			}
+		}
 	}
-	outPath := filepath.Join(d, outFilename)
+	return false
+}
+
+func (r resizer) resize(ctx context.Context, from string, to string) error {
 	var cmd *exec.Cmd
-	args := []string{f, "-quiet", "-resize", r.dimensions, outPath}
-	cmd = exec.Command("convert", args...)
+	if r.hasToFallback(from) {
+		args := fmt.Sprintf("exiftool %v -b -previewImage | convert - -size %v %v", from, r.dimensions, to)
+		cmd = exec.Command("bash", "-c", args)
+	} else {
+		args := []string{from, "-quiet", "-resize", r.dimensions, to}
+		cmd = exec.Command("convert", args...)
+	}
 	b, _ := cmd.CombinedOutput()
 	if len(b) > 0 {
-		return "", "", fmt.Errorf("error on stdout %v: %v", f, string(b))
+		return fmt.Errorf("error on stdout %v: %v", from, string(b))
 	}
-	return outPath, outFilename, nil
+	return nil
 }
 
 func (r resizer) cleanup(ctx context.Context, f string) error {
 	return os.Remove(f)
 }
 
-func NewResizer(w int, h int) resizer {
+func NewResizer(w int, h int, fallbackExtensions []string) resizer {
 	r := resizer{
 		dimensions: fmt.Sprintf("%vx%v", w, h),
+	}
+	r.fallbackExt = make([]string, len(fallbackExtensions))
+	for i, cur := range fallbackExtensions {
+		r.fallbackExt[i] = strings.ToLower(cur)
 	}
 	return r
 }
@@ -66,12 +66,8 @@ func NewResizer(w int, h int) resizer {
 type nopResizer struct {
 }
 
-func (r nopResizer) resize(ctx context.Context, f string, d string) (string, string, error) {
-	outFilename, err := getOutputFilename(f)
-	if err != nil {
-		return "", "", fmt.Errorf("error while calculating output filename for %v: %w", f, err)
-	}
-	return f, outFilename, nil
+func (r nopResizer) resize(ctx context.Context, from string, to string) error {
+	return nil
 }
 
 func (r nopResizer) cleanup(ctx context.Context, f string) error {

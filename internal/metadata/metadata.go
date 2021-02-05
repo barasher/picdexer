@@ -35,6 +35,7 @@ const (
 var defaultDate = uint64(0)
 
 type PictureMetadata struct {
+	FileID       string `json:"-"`
 	FileName     string
 	Folder       string
 	ImportID     string
@@ -103,7 +104,7 @@ func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan ch
 					if !ok {
 						return
 					}
-					picMeta, err := ext.extractMetadataFromFile(ctx, task.Path, task.Info)
+					picMeta, err := ext.extractMetadataFromFile(ctx, task)
 					if err != nil {
 						log.Error().Str(common.LogFileIdentifier, task.Path).Msgf("conversion error: %v", err)
 					} else {
@@ -120,16 +121,17 @@ func (ext *MetadataExtractor) ExtractMetadata(ctx context.Context, inTaskChan ch
 	return nil
 }
 
-func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, f string, fInfo os.FileInfo) (PictureMetadata, error) {
-	log.Info().Str(common.LogFileIdentifier, f).Msg("Extracting metadata...")
+func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, task browse.Task) (PictureMetadata, error) {
+	log.Info().Str(common.LogFileIdentifier, task.Path).Msg("Extracting metadata...")
 	pic := PictureMetadata{}
 
-	metas := ext.exif.ExtractMetadata(f)
+	metas := ext.exif.ExtractMetadata(task.Path)
 	if len(metas) != 1 {
 		return pic, fmt.Errorf("wrong metadata count (%v)", len(metas))
 	}
 	meta := metas[0]
 
+	pic.FileID = task.FileID
 	pic.ImportID = common.GetImportID(ctx)
 	pic.Aperture = getFloat64(meta, apertureKey)
 	pic.ISO = getInt64(meta, isoKey)
@@ -140,13 +142,13 @@ func (ext *MetadataExtractor) extractMetadataFromFile(ctx context.Context, f str
 	pic.Height = getInt64(meta, heightKey)
 	pic.Width = getInt64(meta, widthKey)
 	pic.Keywords = getStrings(meta, keywordsKey)
-	pic.FileSize = uint64(fInfo.Size())
-	pic.FileName = fInfo.Name()
+	pic.FileSize = uint64(task.Info.Size())
+	pic.FileName = task.Info.Name()
 	pic.Date = getDate(meta, captureDateKey)
 	pic.GPS = getGPS(meta, gpsKey)
-	pic.SourceFile = f
+	pic.SourceFile = task.Path
 
-	components := strings.Split(f, string(os.PathSeparator))
+	components := strings.Split(task.Path, string(os.PathSeparator))
 	if len(components) > 1 {
 		pic.Folder = components[len(components)-2]
 	}

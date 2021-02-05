@@ -69,7 +69,7 @@ func buildBinaryManager(c Config) (BinaryManagerInterface, int, error) {
 		opts = append(opts, binary.BinaryManagerDoPush(c.Binary.Url))
 	}
 	if c.Binary.Width != 0 && c.Binary.Height != 0 {
-		opts = append(opts, binary.BinaryManagerDoResize(c.Binary.Width, c.Binary.Height))
+		opts = append(opts, binary.BinaryManagerDoResize(c.Binary.Width, c.Binary.Height, c.Binary.UsePreviewForExtensions))
 	}
 	tc := c.Binary.ThreadCount
 	if tc == 0 {

@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -34,12 +35,12 @@ func NewBinaryManager(threadCount int, opts ...func(*BinaryManager) error) (*Bin
 	return bm, nil
 }
 
-func BinaryManagerDoResize(w int, h int) func(*BinaryManager) error {
+func BinaryManagerDoResize(w int, h int, fallbackExtensions []string) func(*BinaryManager) error {
 	return func(bm *BinaryManager) error {
 		if w == 0 || h == 0 {
 			return fmt.Errorf("neither width (%v) nor height (%v) can equals 0", w, h)
 		}
-		bm.resizer = NewResizer(w, h)
+		bm.resizer = NewResizer(w, h, fallbackExtensions)
 		return nil
 	}
 }
@@ -87,18 +88,19 @@ func (bm *BinaryManager) Store(ctx context.Context, inTaskChan chan browse.Task,
 
 func (bm *BinaryManager) store(ctx context.Context, task browse.Task, outDir string) {
 	log.Info().Str(common.LogFileIdentifier, task.Path).Msg("Resizing...")
-	outBin, outKey, err := bm.resizer.resize(ctx, task.Path, outDir)
+	resizedPath := filepath.Join(outDir, task.FileID)
+	err := bm.resizer.resize(ctx, task.Path, resizedPath)
 	if err != nil {
 		log.Error().Str(common.LogFileIdentifier, task.Path).Msgf("Error while resizing: %v", err)
 		return
 	}
 
-	defer bm.resizer.cleanup(ctx, outBin)
+	defer bm.resizer.cleanup(ctx, resizedPath)
 
-	log.Info().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msg("Pushing...")
-	err = bm.pusher.push(outBin, outKey)
+	log.Info().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, resizedPath).Str(common.LogFileIdentifier, task.FileID).Msg("Pushing...")
+	err = bm.pusher.push(resizedPath, task.FileID)
 	if err != nil {
-		log.Error().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, outBin).Str(common.LogFileIdentifier, outKey).Msgf("Error while pushing: %v", err)
+		log.Error().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, resizedPath).Str(common.LogFileIdentifier, task.FileID).Msgf("Error while pushing: %v", err)
 		return
 	}
 }
