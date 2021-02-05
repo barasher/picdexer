@@ -10,7 +10,8 @@
     "height":480,
     "width":640,
     "threadCount": 11,
-    "workingDir": "/tmp"
+    "workingDir": "/tmp",
+    "usePreviewForExtensions": ["ext1", "ext2"]
   },
   "kibana": {
     "url": "http://localhost:5601"
