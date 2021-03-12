@@ -1,26 +1,23 @@
 package setup
 
 import (
+	_ "embed"
 	"fmt"
-	_ "github.com/barasher/picdexer/internal/setup/statik"
-	"github.com/rakyll/statik/fs"
 	"net/http"
+	"strings"
 )
 
 const mappingPath = "/picdexer"
 
+//go:embed assets/mapping.json
+var esMappingPayload string
+
 type ESManager struct {
 	url string
-	fs  http.FileSystem
 }
 
 func NewESManager(url string) (*ESManager, error) {
-	var err error
-	m := &ESManager{url: url}
-	if m.fs, err = fs.New(); err != nil {
-		return nil, fmt.Errorf("error while loading fs: %w", err)
-	}
-	return m, nil
+	return &ESManager{url: url}, nil
 }
 
 func (s *ESManager) simpleMappingQuery(client *http.Client, method string) (int, error) {
@@ -68,13 +65,7 @@ func (s *ESManager) DeleteMapping(client *http.Client) error {
 }
 
 func (s *ESManager) PutMapping(client *http.Client) error {
-	r, err := s.fs.Open("/mapping.json")
-	if err != nil {
-		return fmt.Errorf("error while reading mapping: %w", err)
-	}
-	defer r.Close()
-
-	req, err := http.NewRequest(http.MethodPut, s.url, r)
+	req, err := http.NewRequest(http.MethodPut, s.url, strings.NewReader(esMappingPayload))
 	if err != nil {
 		return fmt.Errorf("error while creating http request: %w", err)
 	}

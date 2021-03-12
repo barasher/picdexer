@@ -2,7 +2,7 @@ package setup
 
 import (
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +16,7 @@ func TestPutMapping_Nominal(t *testing.T) {
 		assert.Equal(t, http.MethodPut, r.Method)
 		assert.Equal(t, "/picdexer", r.URL.Path)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		assert.Nil(t, err)
 		defer r.Body.Close()
 		assert.Equal(t, expBody, string(body))

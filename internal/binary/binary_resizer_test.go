@@ -3,7 +3,6 @@ package binary
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +18,7 @@ func TestNopResizerCleanUp(t *testing.T) {
 }
 
 func TestResizer_Nominal(t *testing.T) {
-	outDir, err := ioutil.TempDir(os.TempDir(), "picdexer")
+	outDir, err := os.MkdirTemp(os.TempDir(), "picdexer")
 	assert.Nil(t, err)
 	t.Logf("temp folder: %s", outDir)
 	outFile := filepath.Join(outDir, "blabla.jpg")
@@ -33,7 +32,7 @@ func TestResizer_Nominal(t *testing.T) {
 }
 
 func TestResizer_NonExistingSource(t *testing.T) {
-	outDir, err := ioutil.TempDir(os.TempDir(), "picdexer")
+	outDir, err := os.MkdirTemp(os.TempDir(), "picdexer")
 	assert.Nil(t, err)
 	t.Logf("temp folder: %s", outDir)
 	outFile := filepath.Join(outDir, "blabla.jpg")
@@ -44,7 +43,7 @@ func TestResizer_NonExistingSource(t *testing.T) {
 }
 
 func TestResizer_FailOnResizing(t *testing.T) {
-	outDir, err := ioutil.TempDir(os.TempDir(), "picdexer")
+	outDir, err := os.MkdirTemp(os.TempDir(), "picdexer")
 	assert.Nil(t, err)
 	t.Logf("temp folder: %s", outDir)
 	defer os.RemoveAll(outDir)
@@ -56,7 +55,7 @@ func TestResizer_FailOnResizing(t *testing.T) {
 }
 
 func TestResizerCleanUp_Nominal(t *testing.T) {
-	f, err := ioutil.TempFile("/tmp", "TestNopResizer_CleanUp")
+	f, err := os.CreateTemp("/tmp", "TestNopResizer_CleanUp")
 	assert.Nil(t, err)
 	defer os.Remove(f.Name())
 	r := NewResizer(640, 480, []string{})

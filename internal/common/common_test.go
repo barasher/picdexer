@@ -22,6 +22,7 @@ func TestGetMimeType(t *testing.T) {
 		t.Run(tc.tcID, func(t *testing.T) {
 			mime, err := getMimeType(tc.inPath)
 			if tc.expSuccess {
+				t.Logf("%v", err)
 				assert.Nil(t, err)
 				assert.Truef(t, strings.HasPrefix(mime, tc.expMime), "expected prefix: %v, got: %v", tc.expMime, mime)
 			} else {
@@ -38,7 +39,7 @@ func TestHash(t *testing.T) {
 		expSuccess bool
 		expHash    string
 	}{
-		{"txt", "../../testdata/nonPictureFile.txt", true, "d41d8cd98f00b204e9800998ecf8427e"},
+		{"txt", "../../testdata/nonPictureFile.txt", true, "0cc175b9c0f1b6a831c399e269772661"},
 		{"jpg", "../../testdata/picture.jpg", true, "ec3d25618be7af41c6824855f0f42c73"},
 		{"nonExisting", "../../testdata/blabla", false, ""},
 	}

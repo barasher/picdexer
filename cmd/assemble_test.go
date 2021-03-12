@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/barasher/picdexer/internal/binary"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,7 +19,7 @@ func TestRun(t *testing.T) {
 	t.Logf("binServer url: %s", binServer.URL)
 	defer binServer.Close()
 
-	resizeDir, err := ioutil.TempDir(os.TempDir(), "picdexer")
+	resizeDir, err := os.MkdirTemp(os.TempDir(), "picdexer")
 	assert.Nil(t, err)
 	t.Logf("temp folder: %s", resizeDir)
 	defer os.RemoveAll(resizeDir)

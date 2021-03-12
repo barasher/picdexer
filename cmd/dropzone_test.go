@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ func TestFailOnConfLoad(t *testing.T) {
 }
 
 func TestFailOnRun(t *testing.T) {
-	d, err := ioutil.TempDir("/tmp/", "TestFailOnRun")
+	d, err := os.MkdirTemp("/tmp/", "TestFailOnRun")
 	assert.Nil(t, err)
 	assert.Nil(t, copy("../testdata/picture.jpg", d+"/picture.jpg"))
 	defer os.RemoveAll(d)
@@ -46,7 +45,7 @@ func TestDoDropzone_UnparsablePeriod(t *testing.T) {
 }
 
 func TestDropzone_nominal(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("/tmp", "TestWatch")
+	tmpDir, err := os.MkdirTemp("/tmp", "TestWatch")
 	assert.Nil(t, err)
 	t.Logf("tmpDir: %v", tmpDir)
 	defer os.RemoveAll(tmpDir)
@@ -78,12 +77,12 @@ func TestDropzone_nominal(t *testing.T) {
 }
 
 func copy(src, dest string) error {
-	input, err := ioutil.ReadFile(src)
+	input, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(dest, input, 0644)
+	err = os.WriteFile(dest, input, 0644)
 	if err != nil {
 		return err
 	}
