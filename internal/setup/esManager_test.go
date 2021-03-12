@@ -2,11 +2,11 @@ package setup
 
 import (
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-	"io"
 )
 
 func TestPutMapping_Nominal(t *testing.T) {

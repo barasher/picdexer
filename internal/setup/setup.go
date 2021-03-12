@@ -15,7 +15,6 @@ import (
 //go:embed assets/kibana.ndjson
 var kibanaComponentsPayload string
 
-
 type ESManagerInterface interface {
 	MappingAlreadyExist(client *http.Client) (bool, error)
 	DeleteMapping(client *http.Client) error
