@@ -8,7 +8,6 @@ import (
 	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/rs/zerolog/log"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -101,7 +100,7 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, co
 
 func (pusher *EsPusher) Print(ctx context.Context, inEsDocChan chan EsDoc) error {
 	return pusher.sinkChan(ctx, inEsDocChan, func(ctx context.Context, reader io.Reader) error {
-		b, err := ioutil.ReadAll(reader)
+		b, err := io.ReadAll(reader)
 		if err != nil {
 			return fmt.Errorf("error while printing documents: %w", err)
 		}
@@ -133,7 +132,7 @@ func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("error while reading response body: %w", err)
 		}

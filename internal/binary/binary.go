@@ -6,7 +6,6 @@ import (
 	"github.com/barasher/picdexer/internal/browse"
 	"github.com/barasher/picdexer/internal/common"
 	"github.com/rs/zerolog/log"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -56,7 +55,7 @@ func (bm *BinaryManager) Store(ctx context.Context, inTaskChan chan browse.Task,
 	var dir = outDir
 	var err error
 	if dir == "" {
-		dir, err = ioutil.TempDir(os.TempDir(), "picdexer")
+		dir, err = os.MkdirTemp(os.TempDir(), "picdexer")
 		if err != nil {
 			return fmt.Errorf("error while creating temporary folder: %w", err)
 		}

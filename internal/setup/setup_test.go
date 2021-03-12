@@ -3,7 +3,7 @@ package setup
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -18,7 +18,7 @@ func readFile(t *testing.T, path string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return "", err
 	}

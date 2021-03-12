@@ -1,21 +1,20 @@
-//go:generate echo "Embedding assets..."
-//go:generate statik -src assets/ -f
-
 package setup
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
-	_ "github.com/barasher/picdexer/internal/setup/statik"
-	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog/log"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"text/template"
 	"time"
 )
+
+//go:embed assets/kibana.ndjson
+var kibanaComponentsPayload string
+
 
 type ESManagerInterface interface {
 	MappingAlreadyExist(client *http.Client) (bool, error)
@@ -27,11 +26,10 @@ type Setup struct {
 	esUrl  string
 	kibUrl string
 	fsUrl  string
-	fs     http.FileSystem
 }
 
 func logReader(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("error while reading response body: %w", err)
 	}
@@ -40,12 +38,7 @@ func logReader(r io.Reader) error {
 }
 
 func NewSetup(esUrl string, kibUrl string, fsUrl string) (*Setup, error) {
-	var err error
-	s := &Setup{esUrl: esUrl, kibUrl: kibUrl, fsUrl: fsUrl}
-	if s.fs, err = fs.New(); err != nil {
-		return nil, fmt.Errorf("error while loading fs: %w", err)
-	}
-	return s, nil
+	return &Setup{esUrl: esUrl, kibUrl: kibUrl, fsUrl: fsUrl}, nil
 }
 
 func (s *Setup) setupElasticsearch(m ESManagerInterface) error {
@@ -86,16 +79,7 @@ func (s *Setup) SetupKibana() error {
 	log.Info().Msgf("Pushing Kibana objects...")
 
 	// parse template
-	r, err := s.fs.Open("/kibana.ndjson")
-	if err != nil {
-		return fmt.Errorf("error while reading kibana saved objects: %w", err)
-	}
-	defer r.Close()
-	strTpl, err := ioutil.ReadAll(r)
-	if err != nil {
-		return fmt.Errorf("error while reading template: %w", err)
-	}
-	tpl, err := template.New("tpl").Delims("{{{", "}}}").Parse(string(strTpl))
+	tpl, err := template.New("tpl").Delims("{{{", "}}}").Parse(kibanaComponentsPayload)
 	if err != nil {
 		return fmt.Errorf("error while parsing template: %w", err)
 	}

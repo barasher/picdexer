@@ -2,7 +2,6 @@ package filewatcher
 
 import (
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -17,7 +16,7 @@ func checkHasItem(t *testing.T, items []Item, path string) {
 }
 
 func TestWatch(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("/tmp", "TestWatch")
+	tmpDir, err := os.MkdirTemp("/tmp", "TestWatch")
 	assert.Nil(t, err)
 	t.Logf("tmpDir: %v", tmpDir)
 	defer os.RemoveAll(tmpDir)
@@ -42,12 +41,12 @@ func TestWatch(t *testing.T) {
 }
 
 func copy(src, dest string) error {
-	input, err := ioutil.ReadFile(src)
+	input, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(dest, input, 0644)
+	err = os.WriteFile(dest, input, 0644)
 	if err != nil {
 		return err
 	}

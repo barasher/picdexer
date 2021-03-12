@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -48,7 +48,7 @@ func TestPushToEs_Nominal(t *testing.T) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/_bulk", r.URL.Path)
 		assert.Equal(t, "application/x-ndjson", r.Header.Get("Content-type"))
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		assert.Nil(t, err)
 		defer r.Body.Close()
 		assert.Equal(t, expBody, string(b))
@@ -92,7 +92,7 @@ func TestPush_Nominal(t *testing.T) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/_bulk", r.URL.Path)
 		assert.Equal(t, "application/x-ndjson", r.Header.Get("Content-type"))
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		assert.Nil(t, err)
 		defer r.Body.Close()
 		collectedBodies = append(collectedBodies, string(b))
