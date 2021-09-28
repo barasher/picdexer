@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewEsPusher(t *testing.T) {
@@ -197,7 +198,8 @@ func TestConvertMetadataToEsDoc(t *testing.T) {
 	close(in)
 
 	out := make(chan EsDoc, 2)
-	ConvertMetadataToEsDoc(context.TODO(), in, out)
+	p, _ := NewEsPusher(10)
+	p.ConvertMetadataToEsDoc(context.TODO(), in, out)
 
 	docs := []EsDoc{}
 	for cur := range out {
@@ -211,4 +213,37 @@ func TestConvertMetadataToEsDoc(t *testing.T) {
 	assert.Equal(t, "picture.jpg", doc.FileName)
 	assert.Equal(t, "fileIDValue", docs[0].Header.Index.ID)
 	assert.Equal(t, "picdexer", docs[0].Header.Index.Index)
+}
+
+func TestConvertMetadataToEsDoc_WithSync(t *testing.T) {
+	in := make(chan metadata.PictureMetadata, 2)
+	d, err := time.Parse("2006:01:02", "2021:01:01")
+	ts := uint64(d.Unix())
+	assert.Nil(t,err)
+	in <- metadata.PictureMetadata{
+		FileName:   "f1.jpg",
+		SourceFile: "../../testdata/picture.jpg",
+		FileID:     "f1IDValue",
+		Keywords: []string{"kw1", "kw2"},
+		Date: &ts,
+	}
+	close(in)
+
+	out := make(chan EsDoc, 5)
+	sync, err := time.Parse("2006:01:02", "2020/01/01")
+	p, _ := NewEsPusher(10, SyncOnDate("kw2", sync))
+	p.ConvertMetadataToEsDoc(context.TODO(), in, out)
+
+	docs := []EsDoc{}
+	for cur := range out {
+		docs = append(docs, cur)
+	}
+
+	assert.Equal(t, 2, len(docs))
+	doc, ok := docs[1].Document.(SyncOnDateBody)
+	assert.True(t, ok)
+	assert.Equal(t, uint64(64691740800), uint64(doc.SyncedDate))
+	assert.Equal(t, uint64(d.Unix()), doc.Date)
+	assert.Equal(t, "kw2_f1IDValue", docs[1].Header.Index.ID)
+	assert.Equal(t, "sync-on-date", docs[1].Header.Index.Index)
 }

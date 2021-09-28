@@ -13,6 +13,15 @@ func TestLoadConf_Nominal(t *testing.T) {
 	assert.Equal(t, "http://localhost:9200", c.Elasticsearch.Url)
 	assert.Equal(t, 10, c.Elasticsearch.ThreadCount)
 	assert.Equal(t, 200, c.Elasticsearch.BulkSize)
+	expSync := map[string]string{
+		"kw1": "2020-01-01",
+		"kw2": "2020-01-02",
+	}
+	assert.Equal(t, expSync, c.Elasticsearch.SyncOnDate)
+	/*
+	"kw1": "2020-01-01",
+	      "kw2": "2020-01-02"
+	 */
 	// binary
 	assert.Equal(t, "http://localhost:8080", c.Binary.Url)
 	assert.Equal(t, 480, c.Binary.Height)
