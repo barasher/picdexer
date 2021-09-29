@@ -1,0 +1,30 @@
+{
+  "mappings": {
+    "properties": {
+      "Date": {
+        "type": "date"
+      },
+      "SyncedDate": {
+        "type": "date"
+      },
+      "Key": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "PicId": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      }
+    }
+  }
+}

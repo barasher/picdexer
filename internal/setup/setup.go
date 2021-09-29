@@ -12,13 +12,18 @@ import (
 	"time"
 )
 
+const (
+	picdexerIndex = "picdexer"
+	syncOnDateIndex="sync-on-date"
+)
+
 //go:embed assets/kibana.ndjson
 var kibanaComponentsPayload string
 
 type ESManagerInterface interface {
-	MappingAlreadyExist(client *http.Client) (bool, error)
-	DeleteMapping(client *http.Client) error
-	PutMapping(client *http.Client) error
+	MappingAlreadyExist(client *http.Client, index string) (bool, error)
+	DeleteMapping(client *http.Client, index string) error
+	PutMapping(client *http.Client, index string, mapping string) error
 }
 
 type Setup struct {
@@ -44,19 +49,29 @@ func (s *Setup) setupElasticsearch(m ESManagerInterface) error {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-	mappingExists, err := m.MappingAlreadyExist(&client)
+	if err := s.setupIndex(&client, m, picdexerIndex, picdexerMappingPayload); err != nil {
+		return err
+	}
+	if err := s.setupIndex(&client, m, syncOnDateIndex, syncOnDateMappingPayload); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Setup) setupIndex(client *http.Client, m ESManagerInterface, index string, mapping string) error {
+	mappingExists, err := m.MappingAlreadyExist(client, index)
 	if err != nil {
-		return fmt.Errorf("error while checking if mapping already exists: %w", err)
+		return fmt.Errorf("error while checking if %v mapping already exists: %w", index,  err)
 	}
 	if mappingExists {
-		log.Info().Msgf("Elasticsearch mapping already exists, deleting...")
-		err := m.DeleteMapping(&client)
+		log.Info().Msgf("Elasticsearch %v mapping already exists, deleting...", index)
+		err := m.DeleteMapping(client, index)
 		if err != nil {
-			return fmt.Errorf("error while deleting mapping: %w", err)
+			return fmt.Errorf("error while deleting %v mapping: %w", index, err)
 		}
 	}
-	if err = m.PutMapping(&client); err != nil {
-		return fmt.Errorf("error while pushing mapping: %w", err)
+	if err = m.PutMapping(client, index, mapping); err != nil {
+		return fmt.Errorf("error while pushing %v mapping: %w", index, err)
 	}
 	return nil
 }

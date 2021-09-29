@@ -18,6 +18,7 @@ const (
 	esDocIdentifier = "esDocId"
 	bulkSuffix      = "_bulk"
 	ndJsonMimeType  = "application/x-ndjson"
+	baseSyncDate    = 946684800 * 1000 // 2000-01-01
 )
 
 type EsDoc struct {
@@ -34,16 +35,32 @@ type EsHeaderIndex struct {
 	ID    string `json:"_id"`
 }
 
+type EsChildDoc struct {
+	Child      string
+	SyncedDate uint64
+}
+
 type EsPusher struct {
 	bulkSize int
 	url      string
+	dateSync map[string]uint64
+}
+
+type SyncOnDateBody struct {
+	Date       uint64
+	SyncedDate uint64
+	Key        string
+	PicId      string
 }
 
 func NewEsPusher(bulkSize int, opts ...func(*EsPusher) error) (*EsPusher, error) {
 	if bulkSize <= 0 {
 		return nil, fmt.Errorf("bulkSize should be >0 (%v)", bulkSize)
 	}
-	p := &EsPusher{bulkSize: bulkSize}
+	p := &EsPusher{
+		bulkSize: bulkSize,
+		dateSync: make(map[string]uint64),
+	}
 	for _, cur := range opts {
 		if err := cur(p); err != nil {
 			return nil, fmt.Errorf("error while creating EsPusher: %w", err)
@@ -55,6 +72,13 @@ func NewEsPusher(bulkSize int, opts ...func(*EsPusher) error) (*EsPusher, error)
 func EsUrl(url string) func(*EsPusher) error {
 	return func(p *EsPusher) error {
 		p.url = url
+		return nil
+	}
+}
+
+func SyncOnDate(kw string, d time.Time) func(*EsPusher) error {
+	return func(p *EsPusher) error {
+		p.dateSync[kw] = uint64(d.Unix() * 1000)
 		return nil
 	}
 }
@@ -71,6 +95,7 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, co
 		case doc, ok := <-inEsDocChan:
 			if !ok {
 				if bufferDocCount > 0 {
+					log.Info().Msgf("Pushing ES bulk (%v docs)...", bufferDocCount)
 					if err := collectFct(ctx, &buffer); err != nil {
 						return fmt.Errorf("error while sinking buffer: %w", err)
 					}
@@ -87,6 +112,7 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, co
 			}
 			bufferDocCount++
 			if bufferDocCount == pusher.bulkSize {
+				log.Info().Msgf("Pushing ES bulk (%v docs)...", bufferDocCount)
 				if err := collectFct(ctx, &buffer); err != nil {
 					return fmt.Errorf("error while sinking buffer: %w", err)
 				}
@@ -143,7 +169,7 @@ func (pusher *EsPusher) pushToEs(ctx context.Context, body io.Reader) error {
 	return nil
 }
 
-func ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadata, out chan EsDoc) error {
+func (pusher *EsPusher) ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadata, out chan EsDoc) error {
 	defer close(out)
 	for {
 		select {
@@ -153,6 +179,7 @@ func ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadat
 			if !ok {
 				return nil
 			}
+			// main doc
 			out <- EsDoc{
 				Header: EsHeader{
 					Index: EsHeaderIndex{
@@ -161,6 +188,32 @@ func ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadat
 					},
 				},
 				Document: cur,
+			}
+			// date sync
+			if cur.Date != nil {
+				for kw, d := range pusher.dateSync {
+					for _, curKw := range cur.Keywords {
+						if curKw == kw {
+							syncDoc := EsDoc{
+								Header: EsHeader{
+									Index: EsHeaderIndex{
+										Index: "sync-on-date",
+										ID:    kw + "_" + cur.FileID,
+									},
+								},
+								Document: SyncOnDateBody{
+									Date:       *cur.Date,
+									SyncedDate: *cur.Date - d + baseSyncDate,
+									Key:        kw,
+									PicId:      cur.FileID,
+								},
+							}
+							log.Debug().Msgf("%v matches %v keyword : %v", cur.FileID, kw, syncDoc)
+							out <- syncDoc
+							break
+						}
+					}
+				}
 			}
 		}
 	}

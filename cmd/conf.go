@@ -18,6 +18,7 @@ type ElasticsearchConf struct {
 	Url         string `json:"url"`
 	ThreadCount int    `json:"threadCount"`
 	BulkSize    int    `json:"bulkSize"`
+	SyncOnDate map[string]string `json:"syncOnDate"`
 }
 
 type BinaryConf struct {

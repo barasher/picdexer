@@ -9,8 +9,10 @@ import (
 
 const mappingPath = "/picdexer"
 
-//go:embed assets/mapping.json
-var esMappingPayload string
+//go:embed assets/picdexer.json
+var picdexerMappingPayload string
+//go:embed assets/syncOnDate.json
+var syncOnDateMappingPayload string
 
 type ESManager struct {
 	url string
@@ -20,12 +22,12 @@ func NewESManager(url string) (*ESManager, error) {
 	return &ESManager{url: url}, nil
 }
 
-func (s *ESManager) simpleMappingQuery(client *http.Client, method string) (int, error) {
+func (s *ESManager) simpleMappingQuery(client *http.Client, index string, method string) (int, error) {
 	req, err := http.NewRequest(method, s.url, nil)
 	if err != nil {
 		return -1, fmt.Errorf("error while creating http request: %w", err)
 	}
-	req.URL.Path = mappingPath
+	req.URL.Path = "/"+index
 	resp, err := client.Do(req)
 	if err != nil {
 		return -1, fmt.Errorf("error while executing http request: %w", err)
@@ -38,8 +40,8 @@ func (s *ESManager) simpleMappingQuery(client *http.Client, method string) (int,
 	return resp.StatusCode, nil
 }
 
-func (s *ESManager) MappingAlreadyExist(client *http.Client) (bool, error) {
-	status, err := s.simpleMappingQuery(client, http.MethodGet)
+func (s *ESManager) MappingAlreadyExist(client *http.Client,  index string) (bool, error) {
+	status, err := s.simpleMappingQuery(client, index ,http.MethodGet)
 	switch {
 	case err != nil:
 		return false, err
@@ -52,8 +54,8 @@ func (s *ESManager) MappingAlreadyExist(client *http.Client) (bool, error) {
 	}
 }
 
-func (s *ESManager) DeleteMapping(client *http.Client) error {
-	status, err := s.simpleMappingQuery(client, http.MethodDelete)
+func (s *ESManager) DeleteMapping(client *http.Client, index string) error {
+	status, err := s.simpleMappingQuery(client, index ,http.MethodDelete)
 	switch {
 	case err != nil:
 		return err
@@ -64,12 +66,12 @@ func (s *ESManager) DeleteMapping(client *http.Client) error {
 	}
 }
 
-func (s *ESManager) PutMapping(client *http.Client) error {
-	req, err := http.NewRequest(http.MethodPut, s.url, strings.NewReader(esMappingPayload))
+func (s *ESManager) PutMapping(client *http.Client, index string, mapping string) error {
+	req, err := http.NewRequest(http.MethodPut, s.url, strings.NewReader(mapping))
 	if err != nil {
 		return fmt.Errorf("error while creating http request: %w", err)
 	}
-	req.URL.Path = mappingPath
+	req.URL.Path = "/"+index
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {

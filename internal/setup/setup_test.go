@@ -39,17 +39,17 @@ type esManagerMock struct {
 	pmCalled  bool
 }
 
-func (e *esManagerMock) MappingAlreadyExist(client *http.Client) (bool, error) {
+func (e *esManagerMock) MappingAlreadyExist(client *http.Client, index string) (bool, error) {
 	e.maeCalled = true
 	return e.maeBool, e.maeErr
 }
 
-func (e *esManagerMock) DeleteMapping(client *http.Client) error {
+func (e *esManagerMock) DeleteMapping(client *http.Client, index string) error {
 	e.dmCalled = true
 	return e.dmErr
 }
 
-func (e *esManagerMock) PutMapping(client *http.Client) error {
+func (e *esManagerMock) PutMapping(client *http.Client, index string, mapping string) error {
 	e.pmCalled = true
 	return e.pmErr
 }

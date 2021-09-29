@@ -3,7 +3,11 @@
   "elasticsearch": {
     "url": "http://localhost:9200",
     "threadCount": 10,
-    "bulkSize": 200
+    "bulkSize": 200,
+    "syncOnDate": {
+      "kw1": "2020-01-01",
+      "kw2": "2020-01-02"
+    }
   },
   "binary": {
     "url": "http://localhost:8080",

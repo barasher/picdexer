@@ -10,7 +10,7 @@ import (
 )
 
 func TestPutMapping_Nominal(t *testing.T) {
-	expBody, err := readFile(t, "./assets/mapping.json")
+	expBody, err := readFile(t, "./assets/picdexer.json")
 	assert.Nil(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPut, r.Method)
@@ -26,7 +26,7 @@ func TestPutMapping_Nominal(t *testing.T) {
 
 	s, err := NewESManager(ts.URL)
 	assert.Nil(t, err)
-	assert.Nil(t, s.PutMapping(getHttpClient()))
+	assert.Nil(t, s.PutMapping(getHttpClient(), picdexerIndex, picdexerMappingPayload))
 }
 
 func TestPutMapping_WrongStatusCode(t *testing.T) {
@@ -36,13 +36,13 @@ func TestPutMapping_WrongStatusCode(t *testing.T) {
 	defer ts.Close()
 	s, err := NewESManager(ts.URL)
 	assert.Nil(t, err)
-	assert.NotNil(t, s.PutMapping(getHttpClient()))
+	assert.NotNil(t, s.PutMapping(getHttpClient(), picdexerIndex, picdexerMappingPayload))
 }
 
 func TestPutMapping_FailRequest(t *testing.T) {
 	s, err := NewESManager("blablabla")
 	assert.Nil(t, err)
-	assert.NotNil(t, s.PutMapping(getHttpClient()))
+	assert.NotNil(t, s.PutMapping(getHttpClient(), picdexerIndex, picdexerMappingPayload))
 }
 
 func TestSimpleMappingQuery(t *testing.T) {
@@ -54,7 +54,7 @@ func TestSimpleMappingQuery(t *testing.T) {
 	h := http.Client{Timeout: 10 * time.Second}
 	s, err := NewESManager(ts.URL)
 	assert.Nil(t, err)
-	status, _ := s.simpleMappingQuery(&h, http.MethodGet)
+	status, _ := s.simpleMappingQuery(&h, picdexerIndex, http.MethodGet)
 	assert.Equal(t, http.StatusNoContent, status)
 }
 
@@ -79,7 +79,7 @@ func TestMappingAlreadyExist(t *testing.T) {
 			h := http.Client{Timeout: 10 * time.Second}
 			s, err := NewESManager(ts.URL)
 			assert.Nil(t, err)
-			exists, err := s.MappingAlreadyExist(&h)
+			exists, err := s.MappingAlreadyExist(&h, picdexerIndex)
 			if tc.expSuccess {
 				assert.Nil(t, err)
 				assert.Equal(t, tc.expExists, exists)
@@ -109,7 +109,7 @@ func TestDeleteMapping(t *testing.T) {
 			h := http.Client{Timeout: 10 * time.Second}
 			s, err := NewESManager(ts.URL)
 			assert.Nil(t, err)
-			err = s.DeleteMapping(&h)
+			err = s.DeleteMapping(&h, picdexerIndex)
 			if tc.expSuccess {
 				assert.Nil(t, err)
 			} else {

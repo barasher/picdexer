@@ -88,7 +88,7 @@ If the return code is `0`, the command is successfully execute. If any problem h
 ### Setup
 
 **`picdexer`** can setup :
-- `elasticsearch` mapping ([mapping.json](internal/setup/assets/mapping.json))
+- `elasticsearch` mapping ([mapping.json](internal/setup/assets/picdexer.json))
 - `kibana` index-pattern, visualizations, dashboards ([kibana.ndjson](internal/setup/assets/kibana.ndjson))
 
 **:warning: : the maximum table cell height has to be set tu `0` in `kibana`.** Since there is no official global setting `kibana` REST API, it has to be setup manually. In the `kibana` interface, go to `Management` > `Advanced settings` > `General` > `Maximum table cell height` and set the value to `0`.

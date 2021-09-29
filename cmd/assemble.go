@@ -10,12 +10,14 @@ import (
 	"github.com/barasher/picdexer/internal/metadata"
 	"github.com/rs/zerolog/log"
 	"sync"
+	"time"
 )
 
 const (
 	defaultMetadataThreadCount = 4
 	defaultEsBulkSize          = 30
 	defaultBinaryThreadCount   = 4
+	dateFormat                 = "2006:01:02"
 )
 
 func max(v1, v2 int) int {
@@ -36,6 +38,7 @@ type BinaryManagerInterface interface {
 
 type EsPusherInterface interface {
 	Push(ctx context.Context, inEsDocChan chan elasticsearch.EsDoc) error
+	ConvertMetadataToEsDoc(ctx context.Context, in chan metadata.PictureMetadata, out chan elasticsearch.EsDoc) error
 }
 
 type BrowserInterface interface {
@@ -56,7 +59,16 @@ func buildEsPusher(c Config) (EsPusherInterface, error) {
 	if bs == 0 {
 		bs = defaultEsBulkSize
 	}
-	return elasticsearch.NewEsPusher(bs, elasticsearch.EsUrl(c.Elasticsearch.Url))
+	var opts []func(*elasticsearch.EsPusher) error
+	opts = append(opts, elasticsearch.EsUrl(c.Elasticsearch.Url))
+	for k, d := range c.Elasticsearch.SyncOnDate {
+		parsedD, err := time.Parse(dateFormat, d)
+		if err != nil {
+			return nil, fmt.Errorf("syncOnDate : error while parsing date %v", d)
+		}
+		opts = append(opts, elasticsearch.SyncOnDate(k, parsedD))
+	}
+	return elasticsearch.NewEsPusher(bs, opts...)
 }
 
 func buildBinaryManager(c Config) (BinaryManagerInterface, int, error) {
@@ -114,7 +126,7 @@ func Run(ctx context.Context, c Config, input []string) error {
 	}()
 
 	go func() { // metadata to doc
-		if err := elasticsearch.ConvertMetadataToEsDoc(ctx, metaToConvertChan, docToPushChan); err != nil {
+		if err := esPusher.ConvertMetadataToEsDoc(ctx, metaToConvertChan, docToPushChan); err != nil {
 			log.Error().Msgf("Error while converting metadata to Elasticsearch documents: %v", err)
 		}
 		wg.Done()
