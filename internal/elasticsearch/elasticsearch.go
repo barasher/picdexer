@@ -192,7 +192,7 @@ func (pusher *EsPusher) ConvertMetadataToEsDoc(ctx context.Context, in chan meta
 				for kw, d := range pusher.dateSync {
 					for _, curKw := range cur.Keywords {
 						if curKw == kw {
-							out <- EsDoc{
+							syncDoc := EsDoc{
 								Header: EsHeader{
 									Index: EsHeaderIndex{
 										Index: "sync-on-date",
@@ -206,6 +206,8 @@ func (pusher *EsPusher) ConvertMetadataToEsDoc(ctx context.Context, in chan meta
 									PicId:      cur.FileID,
 								},
 							}
+							log.Debug().Msgf("%v matches %v keyword : %v", cur.FileID, kw, syncDoc)
+							out <- syncDoc
 							break
 						}
 					}
