@@ -18,7 +18,7 @@ const (
 	esDocIdentifier = "esDocId"
 	bulkSuffix      = "_bulk"
 	ndJsonMimeType  = "application/x-ndjson"
-	baseSyncDate    = 946684800
+	baseSyncDate    = 946684800 * 1000 // 2000-01-01
 )
 
 type EsDoc struct {
@@ -78,7 +78,7 @@ func EsUrl(url string) func(*EsPusher) error {
 
 func SyncOnDate(kw string, d time.Time) func(*EsPusher) error {
 	return func(p *EsPusher) error {
-		p.dateSync[kw] = uint64(d.Unix())
+		p.dateSync[kw] = uint64(d.Unix() * 1000)
 		return nil
 	}
 }

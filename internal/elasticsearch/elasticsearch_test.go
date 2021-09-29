@@ -242,7 +242,7 @@ func TestConvertMetadataToEsDoc_WithSync(t *testing.T) {
 	assert.Equal(t, 2, len(docs))
 	doc, ok := docs[1].Document.(SyncOnDateBody)
 	assert.True(t, ok)
-	assert.Equal(t, uint64(64691740800), uint64(doc.SyncedDate))
+	assert.Equal(t, uint64(63083891059200), uint64(doc.SyncedDate))
 	assert.Equal(t, uint64(d.Unix()), doc.Date)
 	assert.Equal(t, "kw2_f1IDValue", docs[1].Header.Index.ID)
 	assert.Equal(t, "sync-on-date", docs[1].Header.Index.Index)
