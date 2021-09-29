@@ -95,6 +95,7 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, co
 		case doc, ok := <-inEsDocChan:
 			if !ok {
 				if bufferDocCount > 0 {
+					log.Info().Msgf("Pushing ES bulk (%v docs)...", bufferDocCount)
 					if err := collectFct(ctx, &buffer); err != nil {
 						return fmt.Errorf("error while sinking buffer: %w", err)
 					}
@@ -111,6 +112,7 @@ func (pusher *EsPusher) sinkChan(ctx context.Context, inEsDocChan chan EsDoc, co
 			}
 			bufferDocCount++
 			if bufferDocCount == pusher.bulkSize {
+				log.Info().Msgf("Pushing ES bulk (%v docs)...", bufferDocCount)
 				if err := collectFct(ctx, &buffer); err != nil {
 					return fmt.Errorf("error while sinking buffer: %w", err)
 				}

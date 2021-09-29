@@ -86,7 +86,7 @@ func (bm *BinaryManager) Store(ctx context.Context, inTaskChan chan browse.Task,
 }
 
 func (bm *BinaryManager) store(ctx context.Context, task browse.Task, outDir string) {
-	log.Info().Str(common.LogFileIdentifier, task.Path).Msg("Resizing...")
+	log.Info().Str(common.LogFileIdentifier, task.Path).Msg("Resizing picture...")
 	resizedPath := filepath.Join(outDir, task.FileID)
 	err := bm.resizer.resize(ctx, task.Path, resizedPath)
 	if err != nil {
@@ -96,7 +96,7 @@ func (bm *BinaryManager) store(ctx context.Context, task browse.Task, outDir str
 
 	defer bm.resizer.cleanup(ctx, resizedPath)
 
-	log.Info().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, resizedPath).Str(common.LogFileIdentifier, task.FileID).Msg("Pushing...")
+	log.Info().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, resizedPath).Str(common.LogFileIdentifier, task.FileID).Msg("Pushing picture...")
 	err = bm.pusher.push(resizedPath, task.FileID)
 	if err != nil {
 		log.Error().Str(common.LogFileIdentifier, task.Path).Str(resizedFileIdentifier, resizedPath).Str(common.LogFileIdentifier, task.FileID).Msgf("Error while pushing: %v", err)
